@@ -2,13 +2,14 @@ import * as path from "node:path";
 import type { Problem } from "./checks";
 import type { BuildResult } from "./build";
 import { CliError } from "./errors";
+import { bold, dim, green, red, yellow } from "./colors";
 
 /** Prints a thrown error the same way a build problem is printed, hint included. */
 export function printError(error: unknown): void {
-    console.error(`error: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`${bold(red("error:"))} ${error instanceof Error ? error.message : String(error)}`);
     if (error instanceof CliError && error.hint !== undefined) {
         for (const line of error.hint.split("\n")) {
-            console.error(line === "" ? "" : `  ${line}`);
+            console.error(line === "" ? "" : dim(`  ${line}`));
         }
     }
 }
@@ -25,11 +26,12 @@ export function printProblems(problems: Problem[]): void {
     const ordered = [...problems].sort((a, b) => (a.level === b.level ? 0 : a.level === "error" ? -1 : 1));
     for (const problem of ordered) {
         const out = problem.level === "error" ? console.error : console.warn;
-        out(`${problem.level}: ${location(problem)}${problem.message}`);
+        const level = problem.level === "error" ? bold(red("error:")) : bold(yellow("warning:"));
+        out(`${level} ${location(problem)}${problem.message}`);
         if (problem.hint !== undefined) {
             const lines = Array.isArray(problem.hint) ? problem.hint : problem.hint.split("\n");
             for (const line of lines) {
-                out(line === "" ? "" : `  ${line}`);
+                out(line === "" ? "" : dim(`  ${line}`));
             }
         }
     }
@@ -41,14 +43,14 @@ export function printSummary(result: BuildResult): void {
     const name = result.project.manifest?.name ?? "plugin";
     const mode = result.dev ? "dev bundle" : "release";
     for (const note of result.notes) {
-        console.log(`note: ${note}`);
+        console.log(dim(`note: ${note}`));
     }
     if (result.ok) {
-        console.log(`built ${name} (${mode}) -> ${path.relative(process.cwd(), result.outDir) || "."} (${result.files.length} lua file${result.files.length === 1 ? "" : "s"}${warnings > 0 ? `, ${warnings} warning${warnings === 1 ? "" : "s"}` : ""})`);
+        console.log(green(`built ${name} (${mode}) -> ${path.relative(process.cwd(), result.outDir) || "."} (${result.files.length} lua file${result.files.length === 1 ? "" : "s"}${warnings > 0 ? `, ${warnings} warning${warnings === 1 ? "" : "s"}` : ""})`));
         if (result.deployedTo !== undefined) {
-            console.log(`copied to ${result.deployedTo}`);
+            console.log(green(`copied to ${result.deployedTo}`));
         }
     } else {
-        console.error(`build failed: ${errors} error${errors === 1 ? "" : "s"}${warnings > 0 ? `, ${warnings} warning${warnings === 1 ? "" : "s"}` : ""}`);
+        console.error(bold(red(`build failed: ${errors} error${errors === 1 ? "" : "s"}${warnings > 0 ? `, ${warnings} warning${warnings === 1 ? "" : "s"}` : ""}`)));
     }
 }

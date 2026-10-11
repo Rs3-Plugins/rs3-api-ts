@@ -44,6 +44,7 @@ export function multiSelect(question: string, items: SelectItem[], preselected: 
         const selected = items.map((_, i) => preselected[i] === true);
         let cursor = 0;
         let drawn = false;
+        let lastFrame: string[] = [];
 
         const frame = () => {
             const lines = [`${question}  (up/down move, space toggles, a toggles all, enter confirms)`];
@@ -56,11 +57,24 @@ export function multiSelect(question: string, items: SelectItem[], preselected: 
             return lines;
         };
 
-        const draw = () => {
+        // A line wraps to more than one terminal row once it is wider than the
+        // terminal, so clearing has to move up by the wrapped row count, not the
+        // logical line count, or leftover wrapped text piles up on every redraw.
+        const rows = (lines: string[]) => {
+            const width = stdout.columns ?? 80;
+            return lines.reduce((sum, line) => sum + Math.max(1, Math.ceil(stripAnsi(line).length / width)), 0);
+        };
+
+        const clear = () => {
             if (drawn) {
-                stdout.write(`\x1b[${items.length + 1}A\x1b[J`);
+                stdout.write(`\x1b[${rows(lastFrame)}A\x1b[J`);
             }
-            stdout.write(`${frame().join("\n")}\n`);
+        };
+
+        const draw = () => {
+            clear();
+            lastFrame = frame();
+            stdout.write(`${lastFrame.join("\n")}\n`);
             drawn = true;
         };
 
@@ -102,7 +116,7 @@ export function multiSelect(question: string, items: SelectItem[], preselected: 
                 case "return":
                 case "enter":
                     // wipe the list so only the summary line is left behind
-                    stdout.write(`\x1b[${items.length + 1}A\x1b[J`);
+                    clear();
                     finish();
                     return;
                 default:
@@ -134,4 +148,8 @@ function ask(prompt: string): Promise<string> {
 
 function dim(text: string): string {
     return stdout.isTTY ? `\x1b[2m${text}\x1b[22m` : text;
+}
+
+function stripAnsi(text: string): string {
+    return text.replace(/\x1b\[[0-9;]*m/g, "");
 }
