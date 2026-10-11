@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "declaration": true,
+    "types": ["rs3-api-core"],
+    "skipLibCheck": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src"],
+  "tstl": {
+    "luaTarget": "5.4",
+    "luaLibImport": "none",
+    "noImplicitSelf": true,
+    "noHeader": true,
+    "buildMode": "library"
+  }
+}

@@ -1,0 +1,82 @@
+name: Release
+
+# Pushing to production cuts a release: bump the version if it wasn't bumped
+# already, publish all three packages to npm, cut a GitHub release, and sync
+# the version bump back onto main so the branches don't drift. Needs the
+# NPM_TOKEN secret (an npm automation token, so it works without a 2FA
+# prompt).
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "npm dist-tag"
+        default: "latest"
+
+permissions:
+  contents: write
+  id-token: write # npm provenance
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Skip the run that our own version-bump push triggers.
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip release]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: production
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+
+      - name: Bump the version if it was already released
+        id: version
+        run: node scripts/bump-if-needed.js
+
+      - run: npm run build
+      - run: npm test
+
+      - name: Commit the version bump
+        if: steps.version.outputs.bumped == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): bump version to ${{ steps.version.outputs.version }} [skip release]"
+          git push origin HEAD:production
+
+      - name: Sync the release commit back onto main
+        run: |
+          if git push origin HEAD:main; then
+            echo "fast-forwarded main"
+          else
+            echo "main has diverged, merging instead"
+            production_commit=$(git rev-parse HEAD)
+            git fetch origin main
+            git checkout -b _release_sync origin/main
+            git merge --no-edit "$production_commit"
+            git push origin _release_sync:main
+            git checkout production
+          fi
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+        run: node scripts/release.js --no-build --tag ${{ inputs.tag || 'latest' }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${{ steps.version.outputs.version }}" --target production --title "v${{ steps.version.outputs.version }}" --generate-notes

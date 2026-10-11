@@ -1,0 +1,55 @@
+{
+  "name": "rs3-api-ts",
+  "version": "0.1.0",
+  "description": "rs3-plugin: scaffold, build and check RuneScape 3 plugins written in TypeScript. Emits readable Lua and validates plugin.json against the client's rules.",
+  "license": "MIT",
+  "author": "Mark7625",
+  "homepage": "https://github.com/Rs3-Plugins/rs3-api-ts#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rs3-Plugins/rs3-api-ts.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/Rs3-Plugins/rs3-api-ts/issues"
+  },
+  "keywords": [
+    "runescape",
+    "rs3",
+    "plugin",
+    "lua",
+    "typescript-to-lua",
+    "tstl",
+    "cli"
+  ],
+  "bin": {
+    "rs3-plugin": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "data",
+    "tsconfig.base.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "rs3-api-core": "^0.1.0",
+    "rs3-api-extended": "^0.1.0",
+    "typescript": "6.0.2",
+    "typescript-to-lua": "^1.37.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

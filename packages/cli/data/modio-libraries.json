@@ -1,0 +1,21 @@
+{
+  "$comment": "Written by npm run deps:dump. The library plugins that rs3-plugin init offers.",
+  "generatedAt": "2026-10-11T15:37:04.104Z",
+  "source": "https://mod.io/g/runescape/m?tags=Library+for+other+Plugins",
+  "game": {
+    "id": 13295,
+    "name_id": "runescape"
+  },
+  "tag": "Library for other Plugins",
+  "libraries": [
+    {
+      "id": 6398181,
+      "name_id": "prettyui",
+      "name": "PrettyUI",
+      "summary": "PrettyUI is a developer library that makes it trivial to create user interfaces with a look and feel that matches RuneScape's UI",
+      "profile_url": "https://mod.io/g/runescape/m/prettyui",
+      "author": "rsnJ3",
+      "date_updated": "2026-10-10T10:00:41.000Z"
+    }
+  ]
+}

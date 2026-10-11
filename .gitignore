@@ -1,0 +1,9 @@
+node_modules/
+dist/
+examples/*/dist/
+# workspace members share the root lockfile
+examples/*/package-lock.json
+packages/*/package-lock.json
+*.tgz
+.idea/
+.vscode/

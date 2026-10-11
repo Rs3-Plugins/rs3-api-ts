@@ -1,0 +1,8 @@
+{
+  "extends": "rs3-api-ts/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,38 @@
+{
+  "name": "rs3-api-core",
+  "version": "0.1.0",
+  "description": "TypeScript declarations for the RuneScape 3 (NXT) Lua plugin API, plus the client facts (permissions) tooling needs. Types only, no runtime.",
+  "license": "MIT",
+  "author": "Mark7625",
+  "homepage": "https://github.com/Rs3-Plugins/rs3-api-ts/tree/main/packages/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rs3-Plugins/rs3-api-ts.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/Rs3-Plugins/rs3-api-ts/issues"
+  },
+  "keywords": [
+    "runescape",
+    "rs3",
+    "plugin",
+    "lua",
+    "types"
+  ],
+  "types": "./index.d.ts",
+  "files": [
+    "index.d.ts",
+    "types",
+    "data",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@typescript-to-lua/language-extensions": "^1.19.0",
+    "lua-types": "^2.14.1"
+  }
+}

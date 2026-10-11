@@ -1,0 +1,37 @@
+name: Refresh mod.io library list
+
+# Keeps the library list in step with mod.io. Uses mod.io's public,
+# unauthenticated mod-browsing endpoint, so no API key is needed.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Dump library plugins from mod.io
+        run: node scripts/dump-modio-libraries.js
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- packages/cli/data/modio-libraries.json; then
+            echo "library list unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/cli/data/modio-libraries.json
+          git commit -m "data: refresh mod.io library list"
+          git push

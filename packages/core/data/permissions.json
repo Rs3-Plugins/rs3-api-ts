@@ -1,0 +1,27 @@
+{
+  "$comment": "Permissions the RuneScape client accepts in plugin.json",
+  "clientBuild": "950",
+  "permissions": [
+    {
+      "name": "httpAccess",
+      "description": "Outbound HTTP(S) through HTTPRequest, limited to hosts listed under \"urls\"",
+      "gates": ["\\bHTTPRequest\\b"],
+      "gateLabel": "HTTPRequest",
+      "needsUrls": true
+    },
+    {
+      "name": "chatAccess",
+      "description": "Write to the chat box through Chat.AddMessage",
+      "gates": ["\\bChat\\.AddMessage\\b"],
+      "gateLabel": "Chat.AddMessage",
+      "needsUrls": false
+    },
+    {
+      "name": "trackingAccess",
+      "description": "Read the account's tracking id through Player.GetTrackingID",
+      "gates": ["\\bPlayer\\.GetTrackingID\\b"],
+      "gateLabel": "Player.GetTrackingID",
+      "needsUrls": false
+    }
+  ]
+}

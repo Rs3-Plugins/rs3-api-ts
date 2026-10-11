@@ -1,0 +1,44 @@
+/** @noSelfInFile */
+
+interface NPCTypeProxy extends ConfigTypeProxy, ParamHolder {
+    readonly name: string;
+    readonly visibleCombatLevel: number;
+    readonly isActive: boolean;
+    readonly isFamiliar: boolean;
+    readonly isMultiNPC: boolean;
+    readonly isOnMiniMap: boolean;
+    readonly isExamineOnly: boolean;
+    readonly isAlwaysOnTop: boolean;
+    readonly isAlwaysOnBottom: boolean;
+    readonly gridSize: number;
+    readonly maxRange: number;
+    readonly wanderRange: number;
+    readonly multiVar: number;
+    readonly mapElement: number;
+    readonly bas: number;
+    readonly castsShadows: boolean;
+    readonly customBounding: unknown;
+    readonly hasCustomBounding: boolean;
+    readonly roughBounding: unknown;
+    readonly resize: number;
+    readonly turnSpeed: number;
+    readonly walkSmoothing: number;
+    readonly priorityOffset: number;
+    readonly overlayHeight: number;
+    readonly fastPicking: boolean;
+    readonly hasBackgroundSound: boolean;
+    readonly backgroundSoundReady: number;
+    readonly backgroundSoundWalk: number;
+    readonly backgroundSoundRun: number;
+    readonly backgroundSoundCrawl: number;
+    readonly backgroundSoundVolume: number;
+    readonly backgroundSoundRange: number;
+    readonly backgroundSoundDropoffRange: number;
+    readonly opNames: string[];
+    readonly attackOpIndex: number;
+    readonly attackOpHasPriority: boolean;
+    readonly examineOpIndex: number;
+    readonly firstUniqueOpIndex: number;
+    readonly quests: unknown;
+    GetOpCursor(op: number): number;
+}

@@ -1,0 +1,30 @@
+{
+  "name": "rs3-api-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Workspace for the RuneScape 3 plugin TypeScript SDK: rs3-api-core (Jagex API declarations), rs3-api-extended (runtime helpers) and rs3-api-ts (the rs3-plugin build tool).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rs3-Plugins/rs3-api-ts"
+  },
+  "workspaces": [
+    "packages/core",
+    "packages/extended",
+    "packages/cli",
+    "examples/hello"
+  ],
+  "scripts": {
+    "build": "npm run build -w rs3-api-extended && npm run build -w rs3-api-ts",
+    "test": "node ./scripts/test.js",
+    "deps:dump": "node ./scripts/dump-modio-libraries.js",
+    "version:set": "node ./scripts/version.js",
+    "release": "node ./scripts/release.js",
+    "release:dry": "node ./scripts/release.js --dry-run",
+    "publish:local": "npm run build && npm test && node ./scripts/publish-local.js link",
+    "unpublish:local": "node ./scripts/publish-local.js unlink"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

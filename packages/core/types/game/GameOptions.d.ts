@@ -1,0 +1,48 @@
+/** @noSelfInFile */
+
+interface GameOptions {
+    readonly [name: string]: OptionProxy;
+    readonly AmbientOcclusion: OptionProxy;
+    readonly AnimationQuality: OptionProxy;
+    readonly AnisotropicFiltering: OptionProxy;
+    readonly AntialiasingMode: OptionProxy;
+    readonly AntialiasingQuality: OptionProxy;
+    readonly Bloom: OptionProxy;
+    readonly Brightness: OptionProxy;
+    readonly CanopyCutout: OptionProxy;
+    readonly ConsoleKey: OptionProxy;
+    readonly CursorScale: OptionProxy;
+    readonly CustomCursors: OptionProxy;
+    readonly CustomPlayerModelCount: OptionProxy;
+    readonly CutsceneSubtitles: OptionProxy;
+    readonly DOF: OptionProxy;
+    readonly DeviceCapOverrides: OptionProxy;
+    readonly Diagnostics: OptionProxy;
+    readonly DrawDistance: OptionProxy;
+    readonly EntityHighlights: OptionProxy;
+    readonly GameRenderScale: OptionProxy;
+    readonly GroundBlending: OptionProxy;
+    readonly GroundDecor: OptionProxy;
+    readonly HapticFeedback: OptionProxy;
+    readonly InterfaceScale: OptionProxy;
+    readonly Language: OptionProxy;
+    readonly LightingQuality: OptionProxy;
+    readonly MaxBackgroundFps: OptionProxy;
+    readonly MaxForegroundFps: OptionProxy;
+    readonly ParticleQuality: OptionProxy;
+    readonly Reflections: OptionProxy;
+    readonly RemoveRoof: OptionProxy;
+    readonly RichPresence: OptionProxy;
+    readonly ShadowQuality: OptionProxy;
+    readonly Shadows: OptionProxy;
+    readonly SmoothClipFade: OptionProxy;
+    readonly Texturing: OptionProxy;
+    readonly VSync: OptionProxy;
+    readonly VolumeBackgroundEffects: OptionProxy;
+    readonly VolumeLoginMusic: OptionProxy;
+    readonly VolumeMainEffects: OptionProxy;
+    readonly VolumeMainMusic: OptionProxy;
+    readonly VolumeMaster: OptionProxy;
+    readonly VolumeSpeech: OptionProxy;
+    readonly VolumetricLighting: OptionProxy;
+}
