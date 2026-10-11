@@ -1,6 +1,6 @@
 {
   "name": "rs3-api-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript declarations for the RuneScape 3 (NXT) Lua plugin API, plus the client facts (permissions) tooling needs. Types only, no runtime.",
   "license": "MIT",
   "author": "Mark7625",

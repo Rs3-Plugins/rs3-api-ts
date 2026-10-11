@@ -1,7 +1,7 @@
 {
   "name": "rs3-api-workspace",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Workspace for the RuneScape 3 plugin TypeScript SDK: rs3-api-core (Jagex API declarations), rs3-api-extended (runtime helpers) and rs3-api-ts (the rs3-plugin build tool).",
   "license": "MIT",
   "repository": {

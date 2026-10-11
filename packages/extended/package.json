@@ -1,6 +1,6 @@
 {
   "name": "rs3-api-extended",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Runtime helpers for RuneScape 3 plugins written in TypeScript: definePlugin, event subscription, and the vars shim. Compiled to readable Lua and bundled into your plugin by rs3-plugin.",
   "license": "MIT",
   "author": "Mark7625",
@@ -35,10 +35,10 @@
     "prepack": "npm run build"
   },
   "peerDependencies": {
-    "rs3-api-core": "^0.1.0"
+    "rs3-api-core": "^0.1.1"
   },
   "devDependencies": {
-    "rs3-api-core": "^0.1.0",
+    "rs3-api-core": "^0.1.1",
     "typescript": "6.0.2",
     "typescript-to-lua": "^1.37.1"
   }

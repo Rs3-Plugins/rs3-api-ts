@@ -10,8 +10,8 @@
     "syncVersion": true
   },
   "devDependencies": {
-    "rs3-api-core": "^0.1.0",
-    "rs3-api-extended": "^0.1.0",
-    "rs3-api-ts": "^0.1.0"
+    "rs3-api-core": "^0.1.1",
+    "rs3-api-extended": "^0.1.1",
+    "rs3-api-ts": "^0.1.1"
   }
 }
