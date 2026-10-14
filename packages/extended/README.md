@@ -2,7 +2,7 @@
 
 Custom helpers for RuneScape 3 plugins. Not part of Jagex's API.
 
-Everything in this package was written for this project. None of it exists in the game client, and none of it is something you can call from a plain Lua plugin. It compiles to Lua and ships inside your plugin under `lua_modules/rs3-api-extended/`. For the client's own API, which this builds on, see `rs3-api-core`.
+Everything in this package was written for this project. None of it exists in the game client, and none of it is something you can call from a plain Lua plugin. It compiles to Lua and ships inside your plugin as a single `rs3-api-extended.lua`. For the client's own API, which this builds on, see `rs3-api-core`.
 
 ```ts
 import { definePlugin, on, vars } from "rs3-api-extended";

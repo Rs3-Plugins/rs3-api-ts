@@ -1,0 +1,43 @@
+{
+  "name": "rs3-api-prettyui",
+  "version": "0.1.1",
+  "description": "TypeScript declarations for PrettyUI, the RuneScape 3 UI library plugin: the prettyui global, its components, options and callbacks. Types only.",
+  "license": "MIT",
+  "author": "Mark7625",
+  "homepage": "https://github.com/Rs3-Plugins/rs3-api-ts/tree/main/packages/prettyui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rs3-Plugins/rs3-api-ts.git",
+    "directory": "packages/prettyui"
+  },
+  "bugs": {
+    "url": "https://github.com/Rs3-Plugins/rs3-api-ts/issues"
+  },
+  "keywords": [
+    "runescape",
+    "rs3",
+    "plugin",
+    "prettyui",
+    "lua",
+    "typescript-to-lua",
+    "types"
+  ],
+  "types": "./index.d.ts",
+  "files": [
+    "index.d.ts",
+    "types",
+    "data",
+    "README.md",
+    "LICENSE",
+    "NOTICE.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "rs3-api-core": "^0.1.1"
+  },
+  "devDependencies": {
+    "rs3-api-core": "^0.1.1"
+  }
+}

@@ -2,6 +2,6 @@
 
 /** @noSelf */
 interface ConsumableEventSource<T> {
-    Subscribe(handler: (event: T) => boolean | void): void;
-    Unsubscribe(handler: (event: T) => boolean | void): void;
+    Subscribe(id: string, handler: (event: T) => boolean | void): void;
+    Unsubscribe(id: string): void;
 }

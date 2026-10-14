@@ -1,0 +1,121 @@
+name: Sync PrettyUI
+
+on:
+  schedule:
+    - cron: "15 7 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Sync even if mod.io shows no newer upload"
+        type: boolean
+        default: false
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: prettyui-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - name: Compare mod.io with the recorded release
+        id: sync
+        run: node scripts/sync-prettyui.js --out "$RUNNER_TEMP/prettyui-report.md" ${{ inputs.force && '--force' || '' }}
+        continue-on-error: true
+
+      - name: Nothing to do
+        if: steps.sync.outputs.updated != 'true'
+        run: echo "rs3-api-prettyui already matches PrettyUI ${{ steps.sync.outputs.version }} on mod.io"
+
+      - name: Re-check the declarations
+        id: recheck
+        if: steps.sync.outputs.updated == 'true' && steps.sync.outputs.resolved == 'true'
+        run: |
+          REF='${{ steps.sync.outputs.commit }}'
+          if node scripts/check-prettyui-types.js --source .vendor/prettyui --ref "$REF" && node scripts/check-prettyui-types.js --source .vendor/prettyui --ref "$REF" --self-test; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and test
+        id: test
+        if: steps.sync.outputs.updated == 'true'
+        run: npm run build && npm test
+        continue-on-error: true
+
+      - name: Describe the pull request
+        id: body
+        if: steps.sync.outputs.updated == 'true'
+        run: |
+          {
+            cat "$RUNNER_TEMP/prettyui-report.md"
+            echo
+            echo "### Status"
+            echo
+            echo "- declarations: ${{ steps.recheck.outputs.drift == 'false' && 'match the new source' || 'drifted, need attention' }}"
+            echo "- build and tests: ${{ steps.test.outcome == 'success' && 'passed' || 'failed, see the workflow run' }}"
+            echo
+            echo "Opened by the Sync PrettyUI workflow. Merging runs the Release workflow and publishes to npm."
+          } > "$RUNNER_TEMP/pr-body.md"
+
+      - name: Open the pull request
+        id: pr
+        if: steps.sync.outputs.updated == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+          branch: prettyui/v${{ steps.sync.outputs.version }}
+          commit-message: "prettyui: sync declarations to PrettyUI ${{ steps.sync.outputs.version }}"
+          title: "prettyui: PrettyUI ${{ steps.sync.outputs.version }}"
+          body-path: ${{ runner.temp }}/pr-body.md
+          labels: prettyui-sync
+          delete-branch: true
+          add-paths: |
+            packages/prettyui
+            packages/cli/data
+
+      - name: Merge on its own when nothing needs a human
+        if: steps.pr.outputs.pull-request-number != '' && steps.recheck.outputs.drift == 'false' && steps.test.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}
+        run: gh pr merge --auto --squash "${{ steps.pr.outputs.pull-request-number }}" || echo "auto-merge is not enabled for this repository; merge the pull request by hand"
+
+  promote:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'prettyui-sync')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+
+      - name: Fast-forward production to main
+        run: |
+          git fetch origin production || true
+          git push origin main:production
+
+      - name: Publish through the Release workflow
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}
+        run: gh workflow run release.yml --ref production

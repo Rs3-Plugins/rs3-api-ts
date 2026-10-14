@@ -9,10 +9,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const sdkManifests = ["package.json", "packages/core/package.json", "packages/extended/package.json", "packages/cli/package.json"].map((p) => path.join(root, p));
-const dependentManifests = ["examples/hello/package.json"].map((p) => path.join(root, p));
+const sdkManifests = ["package.json", "packages/core/package.json", "packages/extended/package.json", "packages/prettyui/package.json", "packages/cli/package.json"].map((p) => path.join(root, p));
+const dependentManifests = ["examples/hello/package.json", "examples/prettyui-window/package.json"].map((p) => path.join(root, p));
 
-const SDK_PACKAGES = ["rs3-api-core", "rs3-api-extended", "rs3-api-ts"];
+const SDK_PACKAGES = ["rs3-api-core", "rs3-api-extended", "rs3-api-prettyui", "rs3-api-ts"];
 const DEP_FIELDS = ["dependencies", "devDependencies", "peerDependencies"];
 
 const version = process.argv[2];
@@ -48,6 +48,6 @@ for (const file of [...sdkManifests, ...dependentManifests]) {
 console.log(`
 Next:
   npm install                 refresh the lockfile
-  npm run release             build, test and publish all three
+  npm run release             build, test and publish all four
   git commit -am "release ${version}" && git tag v${version} && git push --follow-tags
 `);

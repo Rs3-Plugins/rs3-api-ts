@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { CliError } from "./errors";
-import { loadCatalog, parseDependencies, toManifestDependencies, type DependencyEntry, type LibraryInfo } from "./libraries";
+import { libraryTypes, loadCatalog, parseDependencies, toManifestDependencies, type DependencyEntry, type LibraryInfo } from "./libraries";
 import { findPermission, permissionNames } from "./permissions";
 import { confirm, multiSelect, text } from "./prompt";
 import { sdkRoot } from "./project";
@@ -61,14 +61,27 @@ export async function init(options: InitOptions): Promise<void> {
         written.push(relative);
     };
 
-    const dependencies = sdkDependencies(answers, target);
+    const typesPackages = libraryTypesPackages(answers);
+    const dependencies = sdkDependencies(answers, target, typesPackages);
     write("package.json", `${JSON.stringify(packageJson(answers, dependencies), null, 2)}\n`);
     write("plugin.json", `${JSON.stringify(pluginJson(answers), null, 2)}\n`);
     copyTemplates(path.join(sdkRoot(), "templates"), answers, write);
+    if (typesPackages.length > 0) {
+        const tsconfigPath = path.join(target, "tsconfig.json");
+        const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, "utf8")) as { compilerOptions?: Record<string, unknown> };
+        tsconfig.compilerOptions = { ...tsconfig.compilerOptions, types: ["rs3-api-core", ...typesPackages] };
+        fs.writeFileSync(tsconfigPath, `${JSON.stringify(tsconfig, null, 2)}\n`);
+    }
 
     console.log(`\ncreated ${answers.name}/ with ${written.length} files`);
     if (answers.sdkSource === "local") {
         console.log(`SDK packages are referenced from this checkout (${dependencies["rs3-api-ts"]}); pass --registry to depend on the published packages instead`);
+    }
+    for (const dependency of [...answers.requiredDependencies, ...answers.optionalDependencies]) {
+        const types = libraryTypes(dependency.name);
+        if (types !== undefined) {
+            console.log(`${types.package} is included, so the ${types.global} global is typed`);
+        }
     }
     if (answers.syncVersion) {
         console.log("plugin.json follows package.json's version: bump with `npm version patch|minor|major`");
@@ -229,16 +242,27 @@ function isInstalledFromRegistry(): boolean {
 const SDK_PACKAGES = ["rs3-api-core", "rs3-api-extended", "rs3-api-ts"] as const;
 
 /** Follows the workspace and npm link symlinks to the real folder. */
-function packageRoot(name: (typeof SDK_PACKAGES)[number]): string {
+function packageRoot(name: string): string {
     if (name === "rs3-api-ts") {
         return sdkRoot();
     }
     return fs.realpathSync(path.dirname(require.resolve(`${name}/package.json`)));
 }
 
-function sdkDependencies(answers: InitAnswers, target: string): Record<string, string> {
+function libraryTypesPackages(answers: InitAnswers): string[] {
+    const out: string[] = [];
+    for (const dependency of [...answers.requiredDependencies, ...answers.optionalDependencies]) {
+        const types = libraryTypes(dependency.name);
+        if (types !== undefined && !out.includes(types.package)) {
+            out.push(types.package);
+        }
+    }
+    return out;
+}
+
+function sdkDependencies(answers: InitAnswers, target: string, typesPackages: string[]): Record<string, string> {
     const out: Record<string, string> = {};
-    for (const name of SDK_PACKAGES) {
+    for (const name of [...SDK_PACKAGES, ...typesPackages]) {
         const root = packageRoot(name);
         if (answers.sdkSource === "registry") {
             const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")) as { version: string };

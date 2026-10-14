@@ -15,7 +15,7 @@ npm run build
 | --- | --- |
 | `rs3-plugin init [name]` | Scaffold a project. Prompts for anything not given as a flag. |
 | `rs3-plugin build` | Release build: one readable Lua file per source file. |
-| `rs3-plugin build --dev` | Dev build: single bundle with source maps, installed into every client's `dev_plugins/`. |
+| `rs3-plugin build --dev` | The same build, installed into every client's `dev_plugins/`. |
 | `rs3-plugin dev` | Dev build on every change, installed the same way. |
 | `--out <dir>` | Copy the finished plugin to `<dir>/<plugin name>/`. |
 | `--client [beta\|live\|all]` | Copy it into that client's `dev_plugins/` folder (`%ProgramData%\Jagex\RuneScape-BETA` or `RuneScape`). Bare `--client` means `all`. |

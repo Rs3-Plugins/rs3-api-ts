@@ -12,7 +12,7 @@ error: Chat.AddMessage needs the "chatAccess" permission, which plugin.json does
 
 An **error** stops the build and nothing is written. A **warning** prints and the build carries on, so it is there to tell you something will not behave the way you expect once the plugin is running.
 
-Messages that name one of your files name the TypeScript, not the Lua that came out of it. Dev builds bundle every module into one file, so they leave the filename off rather than pointing at the wrong one.
+Messages that name one of your files name the TypeScript, not the Lua that came out of it.
 
 ## plugin.json
 
@@ -49,6 +49,7 @@ Checked after compiling, against the Lua that was produced.
 | `nothing in this plugin sets up a tick handler, so the client would load it and never run it` | error | `src/main.ts` never calls `definePlugin` and nothing assigns the `PluginLogic` global. The plugin would install and sit there doing nothing. |
 | `<Api> needs the "<permission>" permission, which plugin.json does not ask for` | error | You called something gated. The hint names the files that call it and gives the `requiredPermissions` line to paste, keeping the permissions you already declared. |
 | `<Api> can only reach hosts that plugin.json lists under "urls", and it lists none` | warning | `HTTPRequest` is restricted to the hosts you declare, so with none declared every request fails. |
+| `<global> is used, but plugin.json does not depend on the <library> library` | error | The client only sets a library plugin's global (such as `prettyui`) when the library is listed under `requiredDependencies` or `optionalDependencies`. Without it the global is nil and the first use fails at runtime. The hint gives the line to paste. |
 | `needs the TypeScriptToLua helper library for <Helpers>, which a release build does not ship` | error | Something has no direct Lua equivalent. See [Keeping the Lua readable](../README.md#keeping-the-lua-readable). Dev builds allow it, release builds do not. |
 | `uses <the os library>, which the plugin sandbox does not provide` | warning | Covers `os`, `io`, `debug`, `load`, `loadstring`, `dofile` and `loadfile`. The call compiles but fails at runtime, and there is no replacement. |
 

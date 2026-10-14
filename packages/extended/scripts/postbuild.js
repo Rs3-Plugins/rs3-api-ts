@@ -26,7 +26,18 @@ for (const entry of fs.readdirSync(out)) {
     fs.writeFileSync(file, `${ANNOTATION}\n${text}`);
 }
 
-for (const required of ["index.lua", "index.d.ts", "plugin.lua", "plugin.d.ts", "vars.lua", "vars.d.ts"]) {
+const indexLua = path.join(out, "index.lua");
+if (fs.existsSync(indexLua)) {
+    const lua = fs.readFileSync(indexLua, "utf8");
+    if (!lua.includes("_G.var")) {
+        console.error("postbuild: expected dist/index.lua to reach the var global through _G");
+        process.exitCode = 1;
+    } else {
+        fs.writeFileSync(indexLua, lua.split("_G.var").join("var"));
+    }
+}
+
+for (const required of ["index.lua", "index.d.ts"]) {
     if (!fs.existsSync(path.join(out, required))) {
         console.error(`postbuild: expected dist/${required} to exist`);
         process.exitCode = 1;

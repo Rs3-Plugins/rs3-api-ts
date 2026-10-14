@@ -26,6 +26,14 @@ export interface DependencyEntry {
     id: number;
 }
 
+export const LIBRARY_TYPES: Readonly<Record<string, { package: string; global: string }>> = {
+    prettyui: { package: "rs3-api-prettyui", global: "prettyui" },
+};
+
+export function libraryTypes(nameId: string): { package: string; global: string } | undefined {
+    return LIBRARY_TYPES[nameId];
+}
+
 let cached: LibraryCatalog | undefined;
 
 export function catalogPath(): string {

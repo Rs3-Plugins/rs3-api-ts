@@ -6,6 +6,7 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const example = path.join(root, "examples", "hello");
+const prettyExample = path.join(root, "examples", "prettyui-window");
 const cliRoot = path.join(root, "packages", "cli");
 const cli = path.join(cliRoot, "dist", "index.js");
 
@@ -17,9 +18,9 @@ function read(relative) {
     return fs.readFileSync(path.join(example, "dist", relative), "utf8");
 }
 
-function pluginLuaOf(files, suffix) {
-    const file = files.find((f) => f.endsWith(suffix) && f.includes("rs3-api-extended"));
-    assert.ok(file, `${suffix} from rs3-api-extended present in output`);
+function runtimeLua(files) {
+    const file = files.find((f) => f.endsWith("rs3-api-extended.lua"));
+    assert.ok(file, "the rs3-api-extended runtime is written as one flat file");
     return fs.readFileSync(file, "utf8");
 }
 
@@ -52,11 +53,11 @@ export function tick() {
 }
 
 export function init() {
-    Event.GameStateChanged.Subscribe(onGameState);
+    Event.GameStateChanged.Subscribe("fixture", onGameState);
 }
 
 export function shutdown() {
-    Event.GameStateChanged.Unsubscribe(onGameState);
+    Event.GameStateChanged.Unsubscribe("fixture");
     if (request !== undefined) {
         request.Cancel();
     }
@@ -95,14 +96,14 @@ main().catch((error) => {
 
 async function main() {
     // The example is an npm workspace member, so its SDK dependencies resolve to packages/*.
-    for (const name of ["rs3-api-core", "rs3-api-extended", "rs3-api-ts"]) {
+    for (const name of ["rs3-api-core", "rs3-api-extended", "rs3-api-prettyui", "rs3-api-ts"]) {
         assert.ok(fs.existsSync(path.join(root, "node_modules", name)), `${name} is linked into the workspace (run npm install at the root)`);
     }
 
     // Checks below edit the example's manifests to watch the build reject them. Each one
     // restores afterwards, but a crash in between would leave the committed example dirty.
     const guarded = new Map(
-        [path.join(example, "plugin.json"), path.join(example, "package.json")].map((file) => [file, fs.readFileSync(file, "utf8")]),
+        [path.join(example, "plugin.json"), path.join(example, "package.json"), path.join(prettyExample, "plugin.json")].map((file) => [file, fs.readFileSync(file, "utf8")]),
     );
     process.on("exit", () => {
         for (const [file, content] of guarded) {
@@ -121,7 +122,7 @@ async function main() {
 
     const dist = path.join(example, "dist");
     const files = luaFiles(dist);
-    assert.ok(files.length >= 4, `expected at least 4 lua files, got ${files.length}`);
+    assert.ok(files.length >= 3, `expected at least 3 lua files, got ${files.length}`);
     assert.ok(fs.existsSync(path.join(dist, "plugin.json")), "plugin.json copied");
 
     const main = read("main.lua");
@@ -129,7 +130,7 @@ async function main() {
     assert.doesNotMatch(main, /require\("[^"]*\.[^"]*"\)/, "no dotted requires");
     assert.match(main, /definePlugin\(\{/, "definePlugin called without a self argument");
     assert.doesNotMatch(main, /name = /, "plugin name is not duplicated in code; it comes from plugin.json");
-    assert.match(pluginLuaOf(files, "plugin.lua"), /options\.name or Plugin\.Name/, "runtime falls back to Plugin.Name");
+    assert.match(runtimeLua(files), /options\.name or Plugin\.Name/, "runtime falls back to Plugin.Name");
 
     const all = files.map((f) => fs.readFileSync(f, "utf8")).join("\n");
     assert.doesNotMatch(all, /__TS__/, "no TypeScriptToLua helper library in release output");
@@ -137,7 +138,11 @@ async function main() {
     assert.match(all, /PluginLogic = function\(event\)/, "PluginLogic entry point assigned");
     assert.match(all, /PluginShutdown = function\(\)/, "PluginShutdown entry point assigned");
     assert.doesNotMatch(main, /PluginDraw|____/, "main.lua is free of entry-point plumbing and compiler temporaries");
-    assert.match(main, /^local ext = require\("lua_modules\/rs3-api-extended\/dist\/index"\)$/m, "runtime import gets a readable local name");
+    assert.match(main, /^local ext = require\("rs3-api-extended"\)$/m, "runtime import gets a readable local name and a flat path");
+    assert.ok(
+        !files.some((f) => f.includes("lua_modules")),
+        "a dependency that compiles to one module is not nested under lua_modules",
+    );
 
     const login = read("modules/login.lua");
     assert.match(login, /^local M = \{\}$/m, "module table renamed to M");
@@ -152,11 +157,9 @@ async function main() {
     assert.match(storage, /PersistentDB:GetInt\(SESSIONS\)/, "userdata globals are colon calls");
     assert.match(storage, /PersistentDB:SetString\(LAST_SEEN, entity\.displayName\)/, "typed strings need no tostring");
 
-    const pluginLib = files.find((f) => /plugin\.lua$/.test(f) && f.includes("rs3-api-extended"));
-    assert.ok(pluginLib, "rs3-api-extended runtime copied into the output");
     assert.ok(!files.some((f) => f.includes("rs3-api-core")), "rs3-api-core is types only and ships nothing");
-    const pluginLua = fs.readFileSync(pluginLib, "utf8");
-    assert.match(pluginLua, /source\.Subscribe\(handler\)/, "EventSource.Subscribe is a dot call inside the SDK");
+    const pluginLua = runtimeLua(files);
+    assert.match(pluginLua, /source\.Subscribe\(key, handler\)/, "EventSource.Subscribe is a dot call that names the subscription");
     assert.match(pluginLua, /pcall\(fn, arg\)/, "hooks guarded with pcall");
     assert.match(pluginLua, /tracked\[#tracked \+ 1\] = entry/, "on() registers the subscription for cleanup");
     assert.match(pluginLua, /local autoUnsubscribe = options\.autoUnsubscribe ~= false/, "autoUnsubscribe defaults on");
@@ -165,6 +168,51 @@ async function main() {
         /guard\(m\.shutdown\)[\s\S]*?if autoUnsubscribe then\s+guard\(M\.unsubscribeAll\)/,
         "every module shutdown runs, and the sweep comes after them",
     );
+
+    console.log("prettyui example");
+    run("build --quiet", prettyExample);
+    const prettyWindow = fs.readFileSync(path.join(prettyExample, "dist", "modules", "window.lua"), "utf8");
+    assert.match(prettyWindow, /prettyui\.Window\.new\(/, "new prettyui.Window compiles to the library's constructor");
+    assert.match(prettyWindow, /prettyui\.Panel\.new\(/, "new prettyui.Panel too");
+    assert.match(prettyWindow, /prettyui\.Confirm\.new\(/, "and the dialog shortcut");
+    assert.match(prettyWindow, /win:AddTitle\("GENERAL"\)/, "host Add… methods are colon calls");
+    assert.match(prettyWindow, /win:AddFancyButton\(/, "including the ones taking an action");
+    assert.match(prettyWindow, /panel:AddTitle\("STATUS"\)/, "panel Add… methods are colon calls as well");
+    assert.match(prettyWindow, /section:AddKeybindField\(/, "collapse sections take their own children");
+    assert.match(prettyWindow, /name:GetText\(\)/, "component methods are colon calls");
+    assert.match(prettyWindow, /onClose = function\(w\)/, "callbacks take the component as a plain first argument, no self");
+    assert.match(prettyWindow, /onChange = function\(_control, values, value, selected\)/, "multi-argument callbacks keep their arguments");
+    assert.match(prettyWindow, /prettyui\.KeybindField\.FormatValue\(value\)/, "module-level functions are dot calls");
+    assert.match(prettyWindow, /id\.Component\.TOPLEVEL_V2__GAME_AREA/, "asset names resolve through id.<type>.<NAME>");
+    assert.match(prettyWindow, /line\.content = /, "ui.Text content is writable");
+    assert.doesNotMatch(prettyWindow, /__TS__/, "no helper library needed");
+    assert.match(fs.readFileSync(path.join(prettyExample, "dist", "main.lua"), "utf8"), /prettyui\.version/, "the version constant is a plain field read");
+    assert.ok(!luaFiles(path.join(prettyExample, "dist")).some((f) => f.includes("rs3-api-prettyui")), "rs3-api-prettyui is types only and ships nothing");
+
+    const prettyManifestPath = path.join(prettyExample, "plugin.json");
+    const prettyManifest = JSON.parse(fs.readFileSync(prettyManifestPath, "utf8"));
+    try {
+        prettyManifest.requiredDependencies = {};
+        fs.writeFileSync(prettyManifestPath, JSON.stringify(prettyManifest, null, 2));
+        let undeclared = false;
+        try {
+            run("build --quiet", prettyExample);
+        } catch (error) {
+            undeclared = true;
+            const stderr = String(error.stderr);
+            assert.match(stderr, /prettyui is used, but plugin\.json does not depend on the prettyui library/, "the error names the global and the library");
+            assert.match(stderr, /used from src[\\/]modules[\\/]window\.ts/, "and the file using it");
+            assert.match(stderr, /"requiredDependencies": \{ "prettyui": 6398181 \}/, "and the line to paste, with the known mod.io id");
+        }
+        assert.ok(undeclared, "build must fail when prettyui is used without the dependency");
+
+        prettyManifest.optionalDependencies = { prettyui: 6398181 };
+        fs.writeFileSync(prettyManifestPath, JSON.stringify(prettyManifest, null, 2));
+        run("build --quiet", prettyExample);
+    } finally {
+        fs.writeFileSync(prettyManifestPath, guarded.get(prettyManifestPath));
+    }
+    run("build --quiet", prettyExample);
 
     // a missing permission, and the other manifest rejections
     console.log("permission check");
@@ -319,9 +367,9 @@ async function main() {
         assert.match(fixture, /PersistentDB:SetInt\("ticks", 1\)/, "userdata globals are colon calls");
         assert.doesNotMatch(fixture, /__TS__/, "fixture stays free of the helper library");
         assert.match(fixture, /^function M\.init\(\)$/m, "a module can still subscribe by hand");
-        assert.match(fixture, /Event\.GameStateChanged\.Subscribe\(onGameState\)/, "raw Subscribe still compiles");
+        assert.match(fixture, /Event\.GameStateChanged\.Subscribe\("fixture", onGameState\)/, "raw Subscribe still compiles, naming the subscription");
         assert.match(fixture, /^function M\.shutdown\(\)$/m, "a module can still define shutdown");
-        assert.match(fixture, /Event\.GameStateChanged\.Unsubscribe\(onGameState\)/, "and unsubscribe itself there");
+        assert.match(fixture, /Event\.GameStateChanged\.Unsubscribe\("fixture"\)/, "and unsubscribe itself there");
 
         // the bundled runtime assigns PluginLogic inside definePlugin, so the check has to ignore
         // it and look for the plugin's own call
@@ -411,6 +459,18 @@ async function main() {
         assert.deepEqual(withDeps.requiredDependencies, { prettyui: 6398181 }, "known library resolved to its mod.io id");
         assert.deepEqual(withDeps.optionalDependencies, { extra: 424242 }, "name=id form accepted for unlisted plugins");
         assert.deepEqual(withDeps.dependencies, {}, "dependencies is an empty dictionary");
+        const withDepsPkg = JSON.parse(fs.readFileSync(path.join(scratch, "with-deps", "package.json"), "utf8"));
+        const prettyDep = withDepsPkg.devDependencies["rs3-api-prettyui"];
+        assert.match(prettyDep, /^file:/, "depending on prettyui adds its declarations package");
+        assert.equal(path.resolve(scratch, "with-deps", prettyDep.slice(5)), path.join(root, "packages", "prettyui"), "pointing at the checkout");
+        const withDepsTsconfig = JSON.parse(fs.readFileSync(path.join(scratch, "with-deps", "tsconfig.json"), "utf8"));
+        assert.deepEqual(withDepsTsconfig.compilerOptions.types, ["rs3-api-core", "rs3-api-prettyui"], "and lists it in tsconfig.json");
+        assert.ok(!("rs3-api-prettyui" in pkg.devDependencies), "a plugin without the dependency does not get the package");
+        assert.ok(!("types" in JSON.parse(fs.readFileSync(path.join(scratch, "with-http", "tsconfig.json"), "utf8")).compilerOptions), "nor the types override");
+
+        run("init registry-deps --yes --registry --deps prettyui", scratch);
+        const registryDeps = JSON.parse(fs.readFileSync(path.join(scratch, "registry-deps", "package.json"), "utf8"));
+        assert.equal(registryDeps.devDependencies["rs3-api-prettyui"], `^${require(path.join(root, "packages", "prettyui", "package.json")).version}`, "--registry writes a version range for the declarations too");
 
         let badDep = false;
         try {
@@ -490,6 +550,54 @@ async function main() {
         }
     })();
 
+    console.log("prettyui sync");
+    await (async () => {
+        const http = require("node:http");
+        const recorded = JSON.parse(fs.readFileSync(path.join(root, "packages", "prettyui", "data", "source.json"), "utf8"));
+        let newest = { id: recorded.modfile.id, version: recorded.modfile.version, date_added: Math.floor(Date.parse(recorded.modfile.dateAdded) / 1000), changelog: "" };
+        const server = http.createServer((req, res) => {
+            const url = new URL(req.url, "http://127.0.0.1");
+            res.setHeader("content-type", "application/json");
+            if (url.pathname === `/v1/games/@runescape/mods/${recorded.modio.id}/files`) {
+                assert.equal(url.searchParams.get("_sort"), "-date_added", "newest file first");
+                res.end(JSON.stringify({ data: [newest], result_count: 1, result_total: 1 }));
+                return;
+            }
+            res.statusCode = 404;
+            res.end("{}");
+        });
+        await new Promise((r) => server.listen(0, "127.0.0.1", r));
+        const port = server.address().port;
+        const outputs = path.join(fs.mkdtempSync(path.join(require("node:os").tmpdir(), "rs3-api-ts-sync-")), "outputs.txt");
+        const sync = (extra) =>
+            new Promise((resolve, reject) => {
+                fs.writeFileSync(outputs, "");
+                const { execFile } = require("node:child_process");
+                execFile(
+                    process.execPath,
+                    [path.join(root, "scripts", "sync-prettyui.js"), "--check-only", ...extra],
+                    { cwd: root, env: { ...process.env, MODIO_API_BASE: `http://127.0.0.1:${port}/v1`, GITHUB_OUTPUT: outputs } },
+                    (error, stdout, stderr) => (error ? reject(new Error(`sync failed: ${stderr}`)) : resolve(`${stdout}${fs.readFileSync(outputs, "utf8")}`)),
+                );
+            });
+        try {
+            const same = await sync([]);
+            assert.match(same, /up to date/, "the recorded upload means nothing to do");
+            assert.match(same, /^updated=false$/m, "and says so for the workflow");
+
+            newest = { id: newest.id + 1, version: "9.9.9", date_added: newest.date_added + 86400, changelog: "- something new" };
+            const changed = await sync([]);
+            assert.match(changed, /mod\.io: PrettyUI 9\.9\.9/, "a newer upload is noticed");
+            assert.match(changed, /^updated=true$/m);
+            assert.match(changed, /^version=9\.9\.9$/m, "with its version");
+            assert.match(changed, new RegExp(`^previousVersion=${recorded.pluginVersion.replace(/\./g, "\\.")}$`, "m"), "and the one being replaced");
+            assert.equal(JSON.parse(fs.readFileSync(path.join(root, "packages", "prettyui", "data", "source.json"), "utf8")).pluginVersion, recorded.pluginVersion, "--check-only leaves source.json alone");
+        } finally {
+            server.close();
+            fs.rmSync(path.dirname(outputs), { recursive: true, force: true });
+        }
+    })();
+
     // the multi-select prompt, driven by simulated keystrokes
     console.log("prompt");
     await new Promise((resolve, reject) => {
@@ -529,9 +637,17 @@ async function main() {
         fs.rmSync(noClients, { recursive: true, force: true });
     }
     const devFiles = luaFiles(dist);
+    const devAll = devFiles.map((f) => fs.readFileSync(f, "utf8")).join("\n");
     const devMain = read("main.lua");
-    assert.match(devMain, /__TS__SourceMapTraceBack|sourcemap/i, "dev bundle carries source map traceback");
-    assert.ok(devFiles.length <= 2, `dev build should be a bundle, got ${devFiles.length} files`);
+    assert.doesNotMatch(devAll, /__TS__/, "a dev build carries no compiler helpers");
+    assert.doesNotMatch(devAll, /\bdebug\.\w+/, "a dev build does not touch the debug library");
+    assert.doesNotMatch(devAll, /sourcemap/i, "a dev build carries no source map table");
+    assert.doesNotMatch(devMain, /____modules|____moduleCache/, "a dev build is not bundled behind a module loader");
+    assert.deepEqual(
+        devFiles.map((f) => path.relative(dist, f)).sort(),
+        files.map((f) => path.relative(dist, f)).sort(),
+        "a dev build writes the same files as a release build",
+    );
 
     // copying the build into a plugins folder: --out for any folder, --client for the installed clients
     console.log("deploy");

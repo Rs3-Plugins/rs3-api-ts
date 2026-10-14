@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { findLibrary } from "./libraries";
+import { findLibrary, LIBRARY_TYPES } from "./libraries";
 import { findPermission, loadPermissions, permissionNames } from "./permissions";
 import type { Manifest } from "./project";
 
@@ -16,12 +16,12 @@ export interface Problem {
 export interface OutputFile {
     path: string;
     code: string;
+    dependency?: boolean;
 }
 
 export interface OutputContext {
     srcDir: string;
     outDir: string;
-    dev: boolean;
 }
 
 const DEPENDENCY_SHAPE_HINT = (key: string) => [
@@ -200,12 +200,11 @@ export function checkManifest(manifest: Manifest | undefined, manifestError: str
 
 export function checkOutput(files: OutputFile[], manifest: Manifest | undefined, context: OutputContext): Problem[] {
     const problems: Problem[] = [];
-    const dev = context.dev;
     const pluginFiles = files.filter((f) => !/lualib_bundle\.lua$/.test(f.path));
 
     // Only the plugin's own files count. The bundled runtime always contains the assignment,
     // inside definePlugin, so including it here would make this check pass for every plugin.
-    const ownFiles = pluginFiles.filter((f) => !f.path.split(path.sep).includes("lua_modules"));
+    const ownFiles = pluginFiles.filter((f) => f.dependency !== true);
     const hasEntry = ownFiles.some((f) => /\bPluginLogic\s*=|\bfunction\s+PluginLogic\b|\bdefinePlugin\s*\(/.test(f.code));
     if (!hasEntry) {
         problems.push({
@@ -223,24 +222,22 @@ export function checkOutput(files: OutputFile[], manifest: Manifest | undefined,
         });
     }
 
-    if (!dev) {
-        for (const file of pluginFiles) {
-            const helpers = new Set<string>();
-            for (const match of file.code.matchAll(/__TS__(\w+)/g)) {
-                helpers.add(match[1]);
-            }
-            if (helpers.size > 0) {
-                problems.push({
-                    level: "error",
-                    file: sourceOf(file.path, context),
-                    message: `needs the TypeScriptToLua helper library for ${[...helpers].join(", ")}, which a release build does not ship`,
-                    hint: [
-                        "something here has no direct Lua equivalent, usually an array, string or object",
-                        "method, a class, spread, Map or Set",
-                        "use plain loops, tables and functions instead",
-                    ],
-                });
-            }
+    for (const file of pluginFiles) {
+        const helpers = new Set<string>();
+        for (const match of file.code.matchAll(/__TS__(\w+)/g)) {
+            helpers.add(match[1]);
+        }
+        if (helpers.size > 0) {
+            problems.push({
+                level: "error",
+                file: sourceOf(file, context),
+                message: `needs the TypeScriptToLua helper library for ${[...helpers].join(", ")}, which the build does not ship`,
+                hint: [
+                    "something here has no direct Lua equivalent, usually an array, string or object",
+                    "method, a class, spread, Map or Set",
+                    "use plain loops, tables and functions instead",
+                ],
+            });
         }
     }
 
@@ -252,10 +249,7 @@ export function checkOutput(files: OutputFile[], manifest: Manifest | undefined,
             continue;
         }
         if (!required.includes(permission.name) && !optional.includes(permission.name)) {
-            const hint: string[] = [];
-            if (!dev) {
-                hint.push(`called from ${describeCallers(users, context)}`);
-            }
+            const hint: string[] = [`called from ${describeCallers(users, context)}`];
             const merged = [...required.filter((p) => findPermission(p) !== undefined), permission.name];
             hint.push(`add it to requiredPermissions in plugin.json:`, "", `    "requiredPermissions": [${merged.map((p) => JSON.stringify(p)).join(", ")}]`);
             problems.push({
@@ -276,12 +270,39 @@ export function checkOutput(files: OutputFile[], manifest: Manifest | undefined,
         }
     }
 
+    const declared = new Set([...dependencyNames(manifest?.requiredDependencies), ...dependencyNames(manifest?.optionalDependencies)]);
+    for (const [nameId, types] of Object.entries(LIBRARY_TYPES)) {
+        if (declared.has(nameId)) {
+            continue;
+        }
+        const gate = new RegExp(`(?<![\\w.])${types.global}\\.\\w+`);
+        const users = ownFiles.filter((f) => gate.test(f.code));
+        if (users.length === 0) {
+            continue;
+        }
+        const hint: string[] = [`used from ${describeCallers(users, context)}`];
+        const known = findLibrary(nameId);
+        const id = known !== undefined ? String(known.id) : "<mod.io id>";
+        hint.push(
+            `the ${types.global} global is nil unless the client loads the library first; add it to plugin.json:`,
+            "",
+            `    "requiredDependencies": { "${nameId}": ${id} }`,
+            "",
+            "or under optionalDependencies if the plugin can run without it (check for nil before use)",
+        );
+        problems.push({
+            level: "error",
+            message: `${types.global} is used, but plugin.json does not depend on the ${nameId} library`,
+            hint: hint.join("\n"),
+        });
+    }
+
     for (const file of ownFiles) {
         for (const forbidden of FORBIDDEN_GLOBALS) {
             if (forbidden.pattern.test(file.code)) {
                 problems.push({
                     level: "warning",
-                    file: sourceOf(file.path, context),
+                    file: sourceOf(file, context),
                     message: `uses ${forbidden.what}, which the plugin sandbox does not provide`,
                     hint: ["the call will fail at runtime; there is no replacement inside the sandbox"],
                 });
@@ -293,17 +314,17 @@ export function checkOutput(files: OutputFile[], manifest: Manifest | undefined,
 }
 
 function describeCallers(users: OutputFile[], context: OutputContext): string {
-    const named = users.map((file) => path.relative(process.cwd(), sourceOf(file.path, context)));
+    const named = users.map((file) => path.relative(process.cwd(), sourceOf(file, context)));
     const shown = named.slice(0, 3).join(", ");
     return named.length > 3 ? `${shown} and ${named.length - 3} more` : shown;
 }
 
 // A release build writes one Lua file per source file, so dist/modules/login.lua came from
 // src/modules/login.ts. Naming the Lua would send the reader into generated code.
-function sourceOf(file: string, context: OutputContext): string {
-    const relative = path.relative(context.outDir, file);
-    if (relative.startsWith("..") || relative.split(path.sep).includes("lua_modules")) {
-        return file;
+function sourceOf(file: OutputFile, context: OutputContext): string {
+    const relative = path.relative(context.outDir, file.path);
+    if (file.dependency === true || relative.startsWith("..")) {
+        return file.path;
     }
     return path.join(context.srcDir, relative.replace(/\.lua$/, ".ts"));
 }
@@ -316,6 +337,10 @@ function firstLine(code: string, pattern: RegExp): number | undefined {
         }
     }
     return undefined;
+}
+
+function dependencyNames(value: unknown): string[] {
+    return isPlainObject(value) ? Object.keys(value) : [];
 }
 
 function stringArray(value: unknown): string[] {

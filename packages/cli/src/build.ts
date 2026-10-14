@@ -8,7 +8,7 @@ import { loadProject, type Project } from "./project";
 
 export interface BuildOptions {
     cwd: string;
-    /** Single bundle with source maps, instead of one readable file per source file. */
+    /** Install into every client's dev_plugins folder as well as dist. */
     dev?: boolean;
     /** Folders to copy the finished plugin into, each under its own `<dir>/<plugin name>/`. */
     deployTo?: string[];
@@ -34,27 +34,36 @@ export function build(options: BuildOptions): BuildResult {
     syncManifestVersion(project, notes);
     problems.push(...checkManifest(project.manifest, project.manifestError, project.manifestPath));
 
-    const extend: tstl.CompilerOptions = dev
-        ? {
-              luaBundle: "main.lua",
-              luaBundleEntry: project.entryFile,
-              luaLibImport: tstl.LuaLibImportKind.Require,
-              sourceMapTraceback: true,
-          }
-        : {};
-
     fs.rmSync(project.outDir, { recursive: true, force: true });
 
-    const written: OutputFile[] = [];
-    const emit = tstl.transpileProject(project.tsconfigPath, extend, (fileName, text) => {
-        const isLua = fileName.endsWith(".lua");
-        const code = isLua && !dev ? makeReadable(text) : text;
-        fs.mkdirSync(path.dirname(fileName), { recursive: true });
-        fs.writeFileSync(fileName, code);
-        if (isLua) {
-            written.push({ path: fileName, code });
-        }
+    const emitted: Array<{ file: string; text: string }> = [];
+    const emit = tstl.transpileProject(project.tsconfigPath, {}, (fileName, text) => {
+        emitted.push({ file: fileName, text });
     });
+
+    const renames = flatNames(emitted, project.outDir);
+    const written: OutputFile[] = [];
+    for (const { file, text } of emitted) {
+        const isLua = file.endsWith(".lua");
+        const id = moduleID(file, project.outDir);
+        let code = text;
+        let target = file;
+        if (isLua) {
+            for (const [from, to] of renames) {
+                code = code.split(`"${from}"`).join(`"${to}"`);
+            }
+            code = makeReadable(code);
+            const renamed = renames.get(id);
+            if (renamed !== undefined) {
+                target = path.join(project.outDir, `${renamed}.lua`);
+            }
+        }
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, code);
+        if (isLua) {
+            written.push({ path: target, code, dependency: packageOf(id) !== undefined });
+        }
+    }
 
     for (const diagnostic of emit.diagnostics) {
         problems.push(toProblem(diagnostic));
@@ -62,8 +71,9 @@ export function build(options: BuildOptions): BuildResult {
 
     const compiled = !problems.some((p) => p.level === "error");
     if (compiled) {
+        noteHelpers(written, notes);
         copyStaticFiles(project);
-        problems.push(...checkOutput(written, project.manifest, { srcDir: project.srcDir, outDir: project.outDir, dev }));
+        problems.push(...checkOutput(written, project.manifest, { srcDir: project.srcDir, outDir: project.outDir }));
     }
 
     const ok = !problems.some((p) => p.level === "error");
@@ -104,6 +114,58 @@ function syncManifestVersion(project: Project, notes: string[]): void {
     raw.version = target;
     fs.writeFileSync(project.manifestPath, `${JSON.stringify(raw, null, 2)}\n`);
     notes.push(`plugin.json version ${String(previous)} -> ${target} (follows package.json)`);
+}
+
+function moduleID(file: string, outDir: string): string {
+    return path.relative(outDir, file).replace(/\.lua$/, "").split(path.sep).join(".");
+}
+
+function packageOf(id: string): string | undefined {
+    const parts = id.split(".");
+    if (parts[0] !== "lua_modules" || parts.length < 3) {
+        return undefined;
+    }
+    return parts[1].startsWith("@") ? `${parts[1].slice(1)}-${parts[2]}` : parts[1];
+}
+
+function flatNames(emitted: Array<{ file: string }>, outDir: string): Map<string, string> {
+    const ids = new Set<string>();
+    for (const { file } of emitted) {
+        if (!file.endsWith(".lua")) {
+            continue;
+        }
+        ids.add(moduleID(file, outDir));
+    }
+    const byPackage = new Map<string, string[]>();
+    for (const id of ids) {
+        const owner = packageOf(id);
+        if (owner === undefined) {
+            continue;
+        }
+        byPackage.set(owner, [...(byPackage.get(owner) ?? []), id]);
+    }
+    const renames = new Map<string, string>();
+    for (const [owner, members] of byPackage) {
+        if (members.length === 1 && !ids.has(owner)) {
+            renames.set(members[0], owner);
+        }
+    }
+    return renames;
+}
+
+function noteHelpers(written: OutputFile[], notes: string[]): void {
+    const helpers = new Set<string>();
+    for (const file of written) {
+        for (const match of file.code.matchAll(/^(?:local )?(?:function |local )?(__TS__\w+)\s*(?:=|\()/gm)) {
+            helpers.add(match[1]);
+        }
+    }
+    if (helpers.size === 0) {
+        return;
+    }
+    const named = [...helpers].sort();
+    const shown = named.slice(0, 6).join(", ");
+    notes.push(`${named.length} compiler helper${named.length === 1 ? "" : "s"} in the output: ${shown}${named.length > 6 ? ", ..." : ""}`);
 }
 
 function copyStaticFiles(project: Project): void {

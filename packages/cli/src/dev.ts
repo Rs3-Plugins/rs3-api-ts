@@ -8,7 +8,7 @@ export interface DevOptions {
     deployTo?: string[];
 }
 
-/** Rebuilds the dev bundle whenever a source file or plugin.json changes. Runs until interrupted. */
+/** Rebuilds whenever a source file or plugin.json changes. Runs until interrupted. */
 export function dev(options: DevOptions): void {
     const project = loadProject(options.cwd);
     let pending: NodeJS.Timeout | undefined;

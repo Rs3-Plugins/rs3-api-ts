@@ -2,7 +2,7 @@
   "name": "rs3-api-workspace",
   "private": true,
   "version": "0.1.1",
-  "description": "Workspace for the RuneScape 3 plugin TypeScript SDK: rs3-api-core (Jagex API declarations), rs3-api-extended (runtime helpers) and rs3-api-ts (the rs3-plugin build tool).",
+  "description": "Workspace for the RuneScape 3 plugin TypeScript SDK: rs3-api-core (Jagex API declarations), rs3-api-extended (runtime helpers), rs3-api-prettyui (PrettyUI library declarations) and rs3-api-ts (the rs3-plugin build tool).",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -11,13 +11,17 @@
   "workspaces": [
     "packages/core",
     "packages/extended",
+    "packages/prettyui",
     "packages/cli",
-    "examples/hello"
+    "examples/hello",
+    "examples/prettyui-window"
   ],
   "scripts": {
     "build": "npm run build -w rs3-api-extended && npm run build -w rs3-api-ts",
     "test": "node ./scripts/test.js",
     "deps:dump": "node ./scripts/dump-modio-libraries.js",
+    "prettyui:check": "node ./scripts/check-prettyui-types.js",
+    "prettyui:sync": "node ./scripts/sync-prettyui.js",
     "version:set": "node ./scripts/version.js",
     "release": "node ./scripts/release.js",
     "release:dry": "node ./scripts/release.js --dry-run",

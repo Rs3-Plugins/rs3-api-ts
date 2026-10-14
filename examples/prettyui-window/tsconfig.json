@@ -1,0 +1,9 @@
+{
+  "extends": "rs3-api-ts/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["rs3-api-core", "rs3-api-prettyui"]
+  },
+  "include": ["src"]
+}

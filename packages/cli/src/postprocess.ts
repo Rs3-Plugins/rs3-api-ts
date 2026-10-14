@@ -3,7 +3,7 @@ const LUA_KEYWORDS = new Set([
     "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while",
 ]);
 
-/** Tidies TypeScriptToLua output for release builds. Dev bundles are left alone. */
+/** Tidies TypeScriptToLua output for the plugin folder. */
 export function makeReadable(code: string): string {
     let out = code;
 
@@ -14,7 +14,7 @@ export function makeReadable(code: string): string {
     out = out.replace(/\bfor ____, /g, "for _, ");
 
     // @noSelf tags are copied through from the TypeScript but only mean something to the compiler.
-    out = out.replace(/^-- ?\n(?=-- @noSelf)/gm, "").replace(/^-- @noSelf\w*\n/gm, "");
+    out = out.replace(/^-{2,} ?\n(?=-- @noSelf)/gm, "").replace(/^-- @noSelf\w*\n/gm, "");
 
     // local ____rs3_2Dapi_2Dextended = require(...)  ->  local ext = require(...)
     for (const match of out.matchAll(/^local (____[A-Za-z][A-Za-z0-9_]*) = require\("([^"]+)"\)$/gm)) {

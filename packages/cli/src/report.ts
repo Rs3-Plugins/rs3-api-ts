@@ -41,7 +41,7 @@ export function printSummary(result: BuildResult): void {
     const errors = result.problems.filter((p) => p.level === "error").length;
     const warnings = result.problems.filter((p) => p.level === "warning").length;
     const name = result.project.manifest?.name ?? "plugin";
-    const mode = result.dev ? "dev bundle" : "release";
+    const mode = result.dev ? "dev" : "release";
     for (const note of result.notes) {
         console.log(dim(`note: ${note}`));
     }

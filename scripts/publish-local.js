@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, "..");
 const packages = [
     ["rs3-api-core", path.join(root, "packages", "core")],
     ["rs3-api-extended", path.join(root, "packages", "extended")],
+    ["rs3-api-prettyui", path.join(root, "packages", "prettyui")],
     ["rs3-api-ts", path.join(root, "packages", "cli")],
 ];
 
@@ -29,7 +30,7 @@ for (const [name, dir] of packages) {
 
 if (mode === "link") {
     console.log(`
-rs3-api-core, rs3-api-extended and rs3-api-ts are linked globally from ${root}
+rs3-api-core, rs3-api-extended, rs3-api-prettyui and rs3-api-ts are linked globally from ${root}
 
   rs3-plugin --help                    the CLI is on your PATH
   rs3-plugin init my-plugin            scaffolds a plugin whose package.json points at this checkout (file:...)

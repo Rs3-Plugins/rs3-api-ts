@@ -10,6 +10,7 @@ const root = path.resolve(__dirname, "..");
 const packages = [
     ["rs3-api-core", path.join(root, "packages", "core")],
     ["rs3-api-extended", path.join(root, "packages", "extended")],
+    ["rs3-api-prettyui", path.join(root, "packages", "prettyui")],
     ["rs3-api-ts", path.join(root, "packages", "cli")],
 ];
 

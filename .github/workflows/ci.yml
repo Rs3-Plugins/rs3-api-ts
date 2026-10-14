@@ -18,4 +18,6 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - name: Verify rs3-api-prettyui against the PrettyUI source
+        run: node scripts/check-prettyui-types.js --self-test
       - run: node scripts/release.js --dry-run --no-build

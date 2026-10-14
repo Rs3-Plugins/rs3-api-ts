@@ -6,13 +6,14 @@ The game client loads plugins as Lua 5.4. You write TypeScript instead, so you g
 
 ## What's in here
 
-Three packages:
+Four packages:
 
 - **rs3-api-core** declares the plugin API that Jagex ships. Types only, so nothing from it ends up inside your plugin.
 - **rs3-api-extended** holds helpers written on top of that API. This one does ship with your plugin, as Lua.
+- **rs3-api-prettyui** declares the `prettyui` global that the [PrettyUI](https://github.com/J3sven/prettyui) library plugin provides: windows, panels, buttons, fields, charts and the rest. Types only. See [packages/prettyui](packages/prettyui).
 - **rs3-api-ts** is the `rs3-plugin` command, which scaffolds a project, compiles it and checks the result.
 
-A plugin depends on all three. `rs3-plugin init` writes that for you.
+A plugin depends on the first two and the CLI. `rs3-plugin init` writes that for you, and adds the PrettyUI declarations when you pick PrettyUI as a dependency.
 
 ## Setup
 
@@ -41,7 +42,7 @@ rs3-plugin init my-plugin --yes --deps prettyui --plugin-version 1.0.0
 
 ## The build output
 
-`npm run build` writes a complete plugin folder to `dist/`: `main.lua`, one Lua file per source file, your `plugin.json`, and the `rs3-api-extended` runtime under `lua_modules/`. Nothing else is needed at runtime.
+`npm run build` writes a complete plugin folder to `dist/`: `main.lua`, one Lua file per source file, your `plugin.json`, and the runtime as a single `rs3-api-extended.lua` beside them. Nothing else is needed at runtime.
 
 Point the client at that folder, or let the build copy it for you:
 
@@ -49,7 +50,7 @@ Point the client at that folder, or let the build copy it for you:
 npm run dev -- --out "C:\path\to\your\plugins"
 ```
 
-`dev` rebuilds on every save and copies the result to `<plugins>/<plugin name>/`. It also builds in dev mode, which bundles everything into one `main.lua` and keeps source maps, so a runtime error points at the TypeScript line rather than the generated Lua. Release builds skip the maps and emit one file per module.
+`dev` rebuilds on every save and copies the result to `<plugins>/<plugin name>/`. The Lua is the same either way: one file per source file, the runtime as a single `rs3-api-extended.lua`, and nothing else. No compiler runtime, and the build refuses to compile a TypeScript feature that would need a helper function, so what ships stays plain Lua.
 
 ## Writing a plugin
 
@@ -67,13 +68,15 @@ definePlugin({
 
 [`examples/hello`](examples/hello) is a working plugin built from five of these modules: a chat message on login, printed XP gains and level-ups, a session counter kept in `PersistentDB`, valuable ground items announced by name and price, and a periodic stat line driven off `tick`.
 
+[`examples/prettyui-window`](examples/prettyui-window) builds a settings window and a HUD panel with PrettyUI: text fields, checkboxes, radio buttons, a slider, a combo box, a keybind field inside a collapsible section, and a confirm dialog.
+
 ## Commands
 
 | Command | What it does |
 | --- | --- |
 | `rs3-plugin init [name]` | Scaffold `./<name>`. Prompts for anything not given as a flag. |
 | `rs3-plugin build` | Release build: one readable Lua file per source file. |
-| `rs3-plugin build --dev` | Dev build: single bundle with source maps. |
+| `rs3-plugin build --dev` | Same output, installed into every client's `dev_plugins/`. |
 | `rs3-plugin dev` | Dev build on every change. |
 | `--out <dir>` | Copy the finished plugin to `<dir>/<plugin name>/`. |
 
@@ -99,6 +102,17 @@ Plugins can depend on library plugins published on mod.io under the tag [Library
 
 On the command line, `--deps prettyui` takes a listed library, `--deps mything=123456` takes any other mod.io id, and `--optional-deps` fills the optional set.
 
+A library plugin shows up in your code as a global, which the client only sets when the dependency is declared. PrettyUI's global is `prettyui`, and `rs3-api-prettyui` types it. Picking PrettyUI in `init` adds that package to `package.json` and to the `types` list in `tsconfig.json`:
+
+```ts
+const win = new prettyui.Window(gameArea, { title: "Settings" });
+win.AddText("Hello");
+```
+
+The build fails if `prettyui` is used without the dependency in `plugin.json`, since it would be nil in game.
+
+The declarations follow the PrettyUI release on mod.io. A daily workflow notices a new upload, matches it to the library's GitHub source, opens a pull request, and publishes a new SDK version once it merges, so `npm update` in a plugin brings the types for the PrettyUI the client is loading. Details in [packages/prettyui](packages/prettyui#keeping-up-with-prettyui).
+
 The known list is [`packages/cli/data/modio-libraries.json`](packages/cli/data/modio-libraries.json), refreshed from mod.io with `npm run deps:dump`. A GitHub Actions workflow runs that weekly and commits any change. Because the list can lag mod.io, a dependency that is missing from it only produces a warning.
 
 ## What the build checks
@@ -108,7 +122,8 @@ Errors stop the build, warnings print and carry on. Every message comes with ind
 - `plugin.json` has a name, a version and `dependencies`; permissions are ones the client knows; URLs are valid; dependency fields are objects of name to mod.io id; the icon flags are booleans.
 - Something sets up a tick handler, so the plugin will actually run once installed.
 - Gated APIs have their permission declared.
-- Release output contains no TypeScriptToLua helper library. If it does, something in your code has no clean Lua equivalent, and the error names it.
+- A library plugin's global (`prettyui`) is only used when `plugin.json` depends on that library.
+- The output contains no TypeScriptToLua helper library. If it would, something in your code has no clean Lua equivalent, and the error names it.
 - References to `os`, `io`, `debug`, `load`, `loadstring`, `dofile` and `loadfile` warn, since the plugin sandbox does not provide them.
 
 ## Keeping the Lua readable
@@ -124,4 +139,4 @@ Most TypeScript compiles to Lua that reads like it was written by hand. A few ha
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The `rs3-api-prettyui` declarations describe [PrettyUI](https://github.com/J3sven/prettyui), which is J3's work and not included here; see [packages/prettyui/NOTICE.md](packages/prettyui/NOTICE.md) for attribution and its licence situation.
