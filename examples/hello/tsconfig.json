@@ -3,7 +3,13 @@
   "//": "rs3-api-ts, rs3-api-core and rs3-api-extended resolve to the workspace packages",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": [
+      "rs3-api-core",
+      "rs3-api-prettyui"
+    ]
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

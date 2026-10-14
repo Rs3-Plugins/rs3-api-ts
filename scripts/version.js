@@ -1,7 +1,9 @@
 // node scripts/version.js <version>
 //
 // The three packages depend on each other by exact range, so they ship as a set
-// and every one of their manifests carries the same version. examples/hello is
+// and every one of their manifests carries the same version. rs3-api-prettyui is
+// outside that set - its major.minor follows PrettyUI's own release - so only its
+// pinned SDK dependencies get bumped here, not its version. examples/hello is
 // not one of those packages - it has its own plugin version (synced into its
 // plugin.json via rs3.syncVersion) - so only its pinned SDK devDependencies
 // get bumped, not its own version field.
@@ -9,10 +11,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const sdkManifests = ["package.json", "packages/core/package.json", "packages/extended/package.json", "packages/prettyui/package.json", "packages/cli/package.json"].map((p) => path.join(root, p));
-const dependentManifests = ["examples/hello/package.json", "examples/prettyui-window/package.json"].map((p) => path.join(root, p));
+const sdkManifests = ["package.json", "packages/core/package.json", "packages/extended/package.json", "packages/cli/package.json"].map((p) => path.join(root, p));
+const dependentManifests = ["packages/prettyui/package.json", "examples/hello/package.json", "examples/prettyui-window/package.json"].map((p) => path.join(root, p));
 
-const SDK_PACKAGES = ["rs3-api-core", "rs3-api-extended", "rs3-api-prettyui", "rs3-api-ts"];
+const SDK_PACKAGES = ["rs3-api-core", "rs3-api-extended", "rs3-api-ts"];
 const DEP_FIELDS = ["dependencies", "devDependencies", "peerDependencies"];
 
 const version = process.argv[2];

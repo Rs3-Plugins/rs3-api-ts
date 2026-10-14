@@ -2,9 +2,11 @@
   "name": "hello-ts",
   "version": "0.1.0",
   "dependencies": {},
-  "requiredDependencies": {},
+  "requiredDependencies": {
+    "prettyui": 6398181
+  },
   "optionalDependencies": {},
-  "requiredPermissions": ["chatAccess"],
+  "requiredPermissions": [],
   "optionalPermissions": [],
   "urls": {},
   "resources": {},

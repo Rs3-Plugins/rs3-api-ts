@@ -1,0 +1,134 @@
+name: Sync gamevals
+
+on:
+  schedule:
+    - cron: "25 * * * 1-3"
+  workflow_dispatch:
+    inputs:
+      cache_id:
+        description: "openrs2 cache id to read (default: the newest beta cache carrying archive 67)"
+        type: string
+        default: ""
+      force:
+        description: "Regenerate even when the recorded cache is already the newest"
+        type: boolean
+        default: false
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: gamevals-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Look for a cache the names have not been generated from
+        id: probe
+        run: node scripts/dump-gamevals.js --probe ${{ github.event_name == 'schedule' && '--weekly' || '' }} ${{ inputs.cache_id && format('--cache-id {0}', inputs.cache_id) || '' }} ${{ inputs.force && '--force' || '' }}
+
+      - name: Nothing to do
+        if: steps.probe.outputs.updated != 'true'
+        run: echo "rs3-api-core already matches cache ${{ steps.probe.outputs.cache-id }} (revision ${{ steps.probe.outputs.revision }})"
+
+      - name: Look for a pull request already open for this cache
+        id: open
+        if: steps.probe.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}
+        run: echo "number=$(gh pr list --head "gamevals/cache-${{ steps.probe.outputs.cache-id }}" --state open --json number --jq '.[0].number // ""')" >> "$GITHUB_OUTPUT"
+
+      - name: Already waiting on a human
+        if: steps.open.outputs.number != ''
+        run: echo "pull request #${{ steps.open.outputs.number }} already has these names; leaving it alone"
+
+      - run: npm ci
+        if: steps.probe.outputs.updated == 'true' && steps.open.outputs.number == ''
+
+      - name: Decode the names out of the cache
+        if: steps.probe.outputs.updated == 'true' && steps.open.outputs.number == ''
+        run: node scripts/dump-gamevals.js --report "$RUNNER_TEMP/gamevals-report.md" ${{ inputs.cache_id && format('--cache-id {0}', inputs.cache_id) || '' }} ${{ inputs.force && '--force' || '' }}
+
+      - name: Build and test
+        id: test
+        if: steps.probe.outputs.updated == 'true' && steps.open.outputs.number == ''
+        run: npm run build && npm test
+        continue-on-error: true
+
+      - name: Describe the pull request
+        if: steps.probe.outputs.updated == 'true' && steps.open.outputs.number == ''
+        run: |
+          {
+            cat "$RUNNER_TEMP/gamevals-report.md"
+            echo
+            echo "### Status"
+            echo
+            echo "- build and tests: ${{ steps.test.outcome == 'success' && 'passed' || 'failed, see the workflow run' }}"
+            echo
+            echo "Merging runs the Release workflow, which bumps the patch version and publishes to npm."
+          } > "$RUNNER_TEMP/pr-body.md"
+
+      - name: Open the pull request
+        id: pr
+        if: steps.probe.outputs.updated == 'true' && steps.open.outputs.number == ''
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+          branch: gamevals/cache-${{ steps.probe.outputs.cache-id }}
+          commit-message: "core: regenerate gameval names from cache ${{ steps.probe.outputs.cache-id }} (revision ${{ steps.probe.outputs.revision }})"
+          title: "core: gameval revision ${{ steps.probe.outputs.revision }} (cache ${{ steps.probe.outputs.cache-id }})"
+          body-path: ${{ runner.temp }}/pr-body.md
+          labels: gamevals-sync
+          delete-branch: true
+          add-paths: |
+            packages/core/types/ids
+            packages/core/data/gamevals.json
+
+      - name: Merge on its own when the build is green
+        if: steps.pr.outputs.pull-request-number != '' && steps.test.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}
+        run: gh pr merge --auto --squash "${{ steps.pr.outputs.pull-request-number }}" || echo "auto-merge is not enabled for this repository; merge the pull request by hand"
+
+  promote:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'gamevals-sync')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+
+      - name: Fast-forward production to main
+        run: |
+          git fetch origin production || true
+          git push origin main:production
+
+      - name: Note whether the push can start the Release workflow on its own
+        id: auth
+        env:
+          SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
+        run: echo "pat=${SYNC_TOKEN:+true}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish through the Release workflow
+        if: steps.auth.outputs.pat != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release.yml --ref production

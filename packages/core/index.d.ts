@@ -4,6 +4,7 @@
 /// <reference path="./types/enums/index.d.ts" />
 /// <reference path="./types/math/index.d.ts" />
 /// <reference path="./types/config/index.d.ts" />
+/// <reference path="./types/ids/index.d.ts" />
 /// <reference path="./types/entities/index.d.ts" />
 /// <reference path="./types/inventory/index.d.ts" />
 /// <reference path="./types/game/index.d.ts" />

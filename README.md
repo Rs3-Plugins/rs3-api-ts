@@ -8,7 +8,7 @@ The game client loads plugins as Lua 5.4. You write TypeScript instead, so you g
 
 Four packages:
 
-- **rs3-api-core** declares the plugin API that Jagex ships. Types only, so nothing from it ends up inside your plugin.
+- **rs3-api-core** declares the plugin API that Jagex ships, down to every gameval name the client knows, so `id.Sprite.RS3_CONTEXTUAL_INPUT_ERROR` completes and type-checks. Types only, so nothing from it ends up inside your plugin.
 - **rs3-api-extended** holds helpers written on top of that API. This one does ship with your plugin, as Lua.
 - **rs3-api-prettyui** declares the `prettyui` global that the [PrettyUI](https://github.com/J3sven/prettyui) library plugin provides: windows, panels, buttons, fields, charts and the rest. Types only. See [packages/prettyui](packages/prettyui).
 - **rs3-api-ts** is the `rs3-plugin` command, which scaffolds a project, compiles it and checks the result.
@@ -114,6 +114,21 @@ The build fails if `prettyui` is used without the dependency in `plugin.json`, s
 The declarations follow the PrettyUI release on mod.io. A daily workflow notices a new upload, matches it to the library's GitHub source, opens a pull request, and publishes a new SDK version once it merges, so `npm update` in a plugin brings the types for the PrettyUI the client is loading. Details in [packages/prettyui](packages/prettyui#keeping-up-with-prettyui).
 
 The known list is [`packages/cli/data/modio-libraries.json`](packages/cli/data/modio-libraries.json), refreshed from mod.io with `npm run deps:dump`. A GitHub Actions workflow runs that weekly and commits any change. Because the list can lag mod.io, a dependency that is missing from it only produces a warning.
+
+## Game ids
+
+Sprites, interface components, objects, NPCs, locations, animations, varps and the rest are reached through the `id` namespace by name. The client resolves the name and gives back the number, so the Lua is the field read you wrote:
+
+```ts
+const sprite = id.Sprite.RS3_CONTEXTUAL_INPUT_ERROR;
+const area = id.Component.TOPLEVEL_V2__GAME_AREA;
+```
+
+All 34 lookups and all 765,000 or so names are declared in `rs3-api-core`, so they complete and a typo is a compile error with nothing to install or configure.
+
+A lookup is not a table of ids. `FromID` and `assetTypeID` are its only real members, and the client resolves a name in native code when you index it, so there is nothing to iterate; the build warns if you try.
+
+The names are decoded out of archive 67 of the client cache, which [the OpenRS2 archive](https://archive.openrs2.org) serves a group at a time, so nothing downloads a full cache and nothing sits between us and the game data. A workflow checks hourly from Monday to Wednesday, following the game's Monday update, and stops once it has that week's cache. It opens a pull request as soon as one turns up the names have not been generated from. A green pull request merges itself and releases a new patch version, so the names reach plugins without anyone doing anything. `npm run ids:dump` does the same thing by hand. Details in [packages/core](packages/core#game-ids).
 
 ## What the build checks
 

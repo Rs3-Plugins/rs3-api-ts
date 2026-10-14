@@ -1,0 +1,320 @@
+{
+    "generatedAt": "2026-10-15T02:53:26.075Z",
+    "cacheId": 2734,
+    "revision": 950,
+    "minor": 1,
+    "environment": "beta",
+    "timestamp": "2026-10-06T16:17:49.015681Z",
+    "cacheUrl": "https://archive.openrs2.org/caches/runescape/2734",
+    "newestCacheId": 2734,
+    "totalNames": 818167,
+    "missing": [],
+    "types": [
+        {
+            "member": "Component",
+            "table": "component",
+            "group": 0,
+            "file": "types/ids/component.d.ts",
+            "names": 104337,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "BaseAnimSet",
+            "table": "bas",
+            "group": 5,
+            "file": "types/ids/base-anim-set.d.ts",
+            "names": 4917,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Category",
+            "table": "category",
+            "group": 9,
+            "file": "types/ids/category.d.ts",
+            "names": 5804,
+            "skipped": 1,
+            "collisions": 3
+        },
+        {
+            "member": "Cursor",
+            "table": "cursor",
+            "group": 12,
+            "file": "types/ids/cursor.d.ts",
+            "names": 185,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "DBRow",
+            "table": "dbrow",
+            "group": 14,
+            "file": "types/ids/db-row.d.ts",
+            "names": 17176,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "DBTable",
+            "table": "dbtable",
+            "group": 15,
+            "file": "types/ids/db-table.d.ts",
+            "names": 261,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Enum",
+            "table": "enum",
+            "group": 16,
+            "file": "types/ids/enum.d.ts",
+            "names": 8743,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Headbar",
+            "table": "headbar",
+            "group": 20,
+            "file": "types/ids/headbar.d.ts",
+            "names": 63,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Hitmark",
+            "table": "hitmark",
+            "group": 21,
+            "file": "types/ids/hitmark.d.ts",
+            "names": 527,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Interface",
+            "table": "interface",
+            "group": 24,
+            "file": "types/ids/interface.d.ts",
+            "names": 1889,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Inv",
+            "table": "inv",
+            "group": 25,
+            "file": "types/ids/inv.d.ts",
+            "names": 951,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Loc",
+            "table": "loc",
+            "group": 28,
+            "file": "types/ids/loc.d.ts",
+            "names": 140298,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "MapElement",
+            "table": "map_element",
+            "group": 29,
+            "file": "types/ids/map-element.d.ts",
+            "names": 5812,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Material",
+            "table": "material",
+            "group": 32,
+            "file": "types/ids/material.d.ts",
+            "names": 24968,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Model",
+            "table": "model",
+            "group": 34,
+            "file": "types/ids/model.d.ts",
+            "names": 145881,
+            "skipped": 0,
+            "collisions": 1
+        },
+        {
+            "member": "NPC",
+            "table": "npc",
+            "group": 35,
+            "file": "types/ids/npc.d.ts",
+            "names": 32763,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Obj",
+            "table": "obj",
+            "group": 36,
+            "file": "types/ids/obj.d.ts",
+            "names": 63529,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Param",
+            "table": "param",
+            "group": 37,
+            "file": "types/ids/param.d.ts",
+            "names": 6026,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Quest",
+            "table": "quest",
+            "group": 41,
+            "file": "types/ids/quest.d.ts",
+            "names": 533,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Seq",
+            "table": "seq",
+            "group": 44,
+            "file": "types/ids/seq.d.ts",
+            "names": 38114,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Sprite",
+            "table": "graphic",
+            "group": 49,
+            "file": "types/ids/sprite.d.ts",
+            "names": 36493,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Struct",
+            "table": "struct",
+            "group": 50,
+            "file": "types/ids/struct.d.ts",
+            "names": 35711,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "VarClan",
+            "table": "var_clan",
+            "group": 55,
+            "file": "types/ids/var-clan.d.ts",
+            "names": 1752,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "VarClanSetting",
+            "table": "var_clan_setting",
+            "group": 56,
+            "file": "types/ids/var-clan-setting.d.ts",
+            "names": 3455,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "VarClient",
+            "table": "var_client",
+            "group": 57,
+            "file": "types/ids/var-client.d.ts",
+            "names": 7783,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "VarPlayer",
+            "table": "var_player",
+            "group": 61,
+            "file": "types/ids/var-player.d.ts",
+            "names": 61963,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Sound",
+            "table": "sound",
+            "group": 64,
+            "file": "types/ids/sound.d.ts",
+            "names": 60094,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Music",
+            "table": "midi",
+            "group": 69,
+            "file": "types/ids/music.d.ts",
+            "names": 2657,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "VarPlayerGroup",
+            "table": "var_player_group",
+            "group": 80,
+            "file": "types/ids/var-player-group.d.ts",
+            "names": 3,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Achievement",
+            "table": "achievement",
+            "group": 89,
+            "file": "types/ids/achievement.d.ts",
+            "names": 4992,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "Font",
+            "table": "fontmetrics",
+            "group": 90,
+            "file": "types/ids/font.d.ts",
+            "names": 225,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "StyleSheet",
+            "table": "stylesheet",
+            "group": 92,
+            "file": "types/ids/style-sheet.d.ts",
+            "names": 232,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "UIAnimCurve",
+            "table": "ui_anim_curve",
+            "group": 96,
+            "file": "types/ids/ui-anim-curve.d.ts",
+            "names": 14,
+            "skipped": 0,
+            "collisions": 0
+        },
+        {
+            "member": "UIAnim",
+            "table": "ui_anim",
+            "group": 97,
+            "file": "types/ids/ui-anim.d.ts",
+            "names": 16,
+            "skipped": 0,
+            "collisions": 0
+        }
+    ]
+}

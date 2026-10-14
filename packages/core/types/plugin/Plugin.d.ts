@@ -5,6 +5,6 @@ declare namespace Plugin {
     const Name: string;
     const Version: string;
     const RemoteID: number;
-    const urls: { readonly [name: string]: string };
+    const urls: { readonly [name: string]: PluginURL };
     const resources: { readonly [name: string]: PluginResource };
 }

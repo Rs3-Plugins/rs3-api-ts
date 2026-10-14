@@ -23,12 +23,28 @@ function currentVersion() {
     return JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 }
 
-function lastReleasedVersion() {
+function lastReleasedVersion(name = PACKAGE_NAME) {
     try {
-        return execSync(`npm view ${PACKAGE_NAME} version`, { encoding: "utf8" }).trim();
+        return execSync(`npm view ${name} version`, { encoding: "utf8" }).trim();
     } catch {
         return ""; // not published yet
     }
+}
+
+// rs3-api-prettyui tracks PrettyUI's major.minor instead of the shared SDK
+// version, so the patch is ours to bump and it has to be done on its own.
+function bumpPrettyUiIfNeeded() {
+    const manifestPath = path.join(root, "packages", "prettyui", "package.json");
+    const text = fs.readFileSync(manifestPath, "utf8");
+    const manifest = JSON.parse(text);
+    if (manifest.version !== lastReleasedVersion(manifest.name)) {
+        console.log(`${manifest.name}@${manifest.version} was not released yet, keeping it`);
+        return;
+    }
+    const next = nextPatch(manifest.version);
+    console.log(`${manifest.name}@${manifest.version} is already released, bumping to ${next}`);
+    manifest.version = next;
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, text.startsWith("{\n    ") ? 4 : 2)}\n`);
 }
 
 function nextPatch(version) {
@@ -42,6 +58,8 @@ function nextPatch(version) {
 
 const version = currentVersion();
 const released = lastReleasedVersion();
+
+bumpPrettyUiIfNeeded();
 
 if (version !== released) {
     console.log(`${PACKAGE_NAME}@${version} was not released yet, keeping it`);

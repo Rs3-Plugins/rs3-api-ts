@@ -42,6 +42,6 @@ declare namespace Event {
     const RegionUpdated: EventSource<RegionCreatedEvent>;
     const OptionalDependencyChanged: EventSource<OptionalDependencyChangedEvent>;
     const OptionalPermissionChanged: EventSource<OptionalPermissionChangedEvent>;
-    const ContentLayerReady: EventSource<Layer>;
-    const SettingsLayerReady: EventSource<Layer>;
+    const ContentLayerReady: EventSource<LayerReadyEvent>;
+    const SettingsLayerReady: EventSource<LayerReadyEvent>;
 }

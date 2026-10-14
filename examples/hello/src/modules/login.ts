@@ -6,6 +6,6 @@ export function init() {
 
 function onGameState(event: GameStateChangedEvent) {
     if (event.newState === GameState.GAME) {
-        Chat.AddMessage(ChatType.GENERAL, "This is a test");
+        print(`${Plugin.Name} saw the game load`);
     }
 }

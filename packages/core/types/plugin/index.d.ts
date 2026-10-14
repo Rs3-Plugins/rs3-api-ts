@@ -1,4 +1,5 @@
 /// <reference path="./Lifecycle.d.ts" />
+/// <reference path="./PluginURL.d.ts" />
 /// <reference path="./Plugin.d.ts" />
 /// <reference path="./PluginPermission.d.ts" />
 /// <reference path="./PluginPermissions.d.ts" />

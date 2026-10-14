@@ -13,6 +13,25 @@ const API_BASE = (process.env.MODIO_API_BASE ?? "https://mod.io/v1").replace(/\/
 const GAME_NAME_ID = process.env.MODIO_GAME_NAME_ID ?? "runescape";
 const UPLOAD_SLACK_MS = 6 * 60 * 60 * 1000;
 
+function trackUpstreamVersion(upstream) {
+    const series = /^(\d+)\.(\d+)\./.exec(upstream);
+    if (series === null) {
+        console.log(`PrettyUI ${upstream} is not a major.minor.patch version, leaving the package version alone`);
+        return;
+    }
+    const manifestPath = path.join(packageDir, "package.json");
+    const text = fs.readFileSync(manifestPath, "utf8");
+    const manifest = JSON.parse(text);
+    if (manifest.version.startsWith(`${series[1]}.${series[2]}.`)) {
+        console.log(`rs3-api-prettyui ${manifest.version} already tracks the ${series[1]}.${series[2]} series`);
+        return;
+    }
+    const next = `${series[1]}.${series[2]}.0`;
+    console.log(`rs3-api-prettyui ${manifest.version} -> ${next}, following PrettyUI ${upstream}`);
+    manifest.version = next;
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, text.startsWith("{\n    ") ? 4 : 2)}\n`);
+}
+
 const args = process.argv.slice(2);
 const flag = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
 const checkOnly = args.includes("--check-only");
@@ -213,6 +232,7 @@ async function main() {
     };
     fs.writeFileSync(sourceJsonPath, `${JSON.stringify(updated, null, 2)}\n`);
     console.log(`updated ${path.relative(root, sourceJsonPath)}`);
+    trackUpstreamVersion(modfile.version);
 
     let check = runCheck(commit.sha);
     if (check.ok) {

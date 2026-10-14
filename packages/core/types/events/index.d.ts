@@ -32,4 +32,5 @@
 /// <reference path="./RegionCreatedEvent.d.ts" />
 /// <reference path="./EntityDrawEvent.d.ts" />
 /// <reference path="./CustomAPIEvent.d.ts" />
+/// <reference path="./LayerReadyEvent.d.ts" />
 /// <reference path="./Event.d.ts" />

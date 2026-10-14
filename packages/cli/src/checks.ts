@@ -43,6 +43,8 @@ const FORBIDDEN_GLOBALS: Array<{ pattern: RegExp; what: string }> = [
     { pattern: /(?<![\w.])load\s*\(/, what: "load" },
 ];
 
+const ID_ITERATION = /\b(?:pairs|ipairs|next)\s*\(\s*(id\.[A-Za-z]+)\s*[,)]/;
+
 export function checkManifest(manifest: Manifest | undefined, manifestError: string | undefined, file: string): Problem[] {
     if (manifest === undefined) {
         // No file prefix: these messages already name plugin.json.
@@ -307,6 +309,17 @@ export function checkOutput(files: OutputFile[], manifest: Manifest | undefined,
                     hint: ["the call will fail at runtime; there is no replacement inside the sandbox"],
                 });
             }
+        }
+
+        const iterated = ID_ITERATION.exec(file.code);
+        if (iterated !== null) {
+            problems.push({
+                level: "warning",
+                file: sourceOf(file, context),
+                line: firstLine(file.code, ID_ITERATION),
+                message: `iterates ${iterated[1]}, which holds no names to iterate`,
+                hint: [`the client resolves ${iterated[1]}.SOME_NAME in native code, so the table itself only has FromID and assetTypeID`, "list the names you need yourself"],
+            });
         }
     }
 

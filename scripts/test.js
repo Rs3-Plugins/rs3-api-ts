@@ -29,8 +29,14 @@ const FIXTURE_MODULE = `import { vars } from "rs3-api-extended";
 const VARP = 4735;
 const BITS = (1 << 19) | (1 << 20);
 const TRACKED: SkillType[] = [SkillType.ATTACK, SkillType.DEFENCE];
+const SPRITE = id.Sprite.RS3_CONTEXTUAL_INPUT_ERROR;
+const AREA = id.Component.TOPLEVEL_V2__GAME_AREA;
 
 let request: HTTPRequest | undefined;
+
+export function sprites() {
+    print(SPRITE, AREA);
+}
 
 export function tick() {
     const current = request;
@@ -148,10 +154,16 @@ async function main() {
     assert.match(login, /^local M = \{\}$/m, "module table renamed to M");
     assert.match(login, /^return M$/m, "module returns M");
     assert.match(login, /^function M\.init\(\)$/m, "exported functions have no self parameter");
-    assert.match(login, /Chat\.AddMessage\(ChatType\.GENERAL, "This is a test"\)/, "API tables are dot calls");
     assert.match(login, /GameState\.GAME/, "enums are runtime lookups, not inlined numbers");
     assert.match(login, /on\(Event\.GameStateChanged, onGameState\)/, "subscribes through on, so shutdown is handled");
     assert.doesNotMatch(login, /M\.shutdown/, "autoUnsubscribe means the module needs no shutdown");
+
+    const gamevals = read("modules/gamevals.lua");
+    assert.match(gamevals, /config\.Obj\.FromID\(/, "API tables are dot calls");
+    assert.match(gamevals, /ui\.Interfaces:GetComponent\(id\.Component\.TOPLEVEL_V2__GAME_AREA\)/, "userdata is a colon call and the gameval is a plain field read");
+    assert.match(gamevals, /value = id\.Sprite\.RS3_CONTEXTUAL_INPUT_ERROR/, "a gameval name compiles to the name, never to its number");
+    assert.match(gamevals, /win:AddSprite\(/, "prettyui controls are colon calls");
+    assert.doesNotMatch(gamevals, /__TS__/, "the gameval window needs no helper library");
 
     const storage = read("modules/storage.lua");
     assert.match(storage, /PersistentDB:GetInt\(SESSIONS\)/, "userdata globals are colon calls");
@@ -165,8 +177,8 @@ async function main() {
     assert.match(pluginLua, /local autoUnsubscribe = options\.autoUnsubscribe ~= false/, "autoUnsubscribe defaults on");
     assert.match(
         pluginLua,
-        /guard\(m\.shutdown\)[\s\S]*?if autoUnsubscribe then\s+guard\(M\.unsubscribeAll\)/,
-        "every module shutdown runs, and the sweep comes after them",
+        /if autoUnsubscribe then\s+guard\(M\.unsubscribeAll\)[\s\S]*?guard\(m\.shutdown\)/,
+        "handlers are detached before any module shutdown destroys what they draw into",
     );
 
     console.log("prettyui example");
@@ -218,10 +230,11 @@ async function main() {
     console.log("permission check");
     const manifestPath = path.join(example, "plugin.json");
     const original = fs.readFileSync(manifestPath, "utf8");
+    const gatedSource = path.join(example, "src", "modules", "chatty.ts");
+    const gatedOutput = path.join(example, "dist", "modules", "chatty.lua");
     try {
         const manifest = JSON.parse(original);
-        manifest.requiredPermissions = [];
-        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+        fs.writeFileSync(gatedSource, 'export function say() {\n    Chat.AddMessage(ChatType.GENERAL, "gated");\n}\n');
         let failed = false;
         try {
             run("build --quiet", example);
@@ -229,12 +242,13 @@ async function main() {
             failed = true;
             const stderr = String(error.stderr);
             assert.match(stderr, /Chat\.AddMessage needs the "chatAccess" permission/, "the error names the api and the permission it wants");
-            assert.match(stderr, /called from src[\\/]modules[\\/]login\.ts/, "the error points at the source file, not the generated lua");
+            assert.match(stderr, /called from src[\\/]modules[\\/]chatty\.ts/, "the error points at the source file, not the generated lua");
             assert.match(stderr, /"requiredPermissions": \["chatAccess"\]/, "the error shows the json to paste");
         }
         assert.ok(failed, "build must fail when Chat.AddMessage is used without chatAccess");
+        fs.rmSync(gatedSource);
+        fs.rmSync(gatedOutput, { force: true });
 
-        manifest.requiredPermissions = ["chatAccess"];
         const savedName = manifest.name;
         delete manifest.name;
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
@@ -260,7 +274,7 @@ async function main() {
         assert.ok(badIcon, "non-boolean icon flags are rejected");
         delete manifest.hasRibbonIcon;
 
-        manifest.requiredPermissions = ["chatAccess", "notARealPermission"];
+        manifest.requiredPermissions = ["notARealPermission"];
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
         let unknown = false;
         try {
@@ -272,6 +286,8 @@ async function main() {
         assert.ok(unknown, "build must fail on a permission the client does not know");
     } finally {
         fs.writeFileSync(manifestPath, original);
+        fs.rmSync(gatedSource, { force: true });
+        fs.rmSync(gatedOutput, { force: true });
     }
 
     // version sync
@@ -361,6 +377,8 @@ async function main() {
         assert.match(fixture, /r:AddHeader\("Content-Type", "application\/json"\)/, "userdata methods are colon calls");
         assert.match(fixture, /:Cancel\(\)/, "Cancel is a colon call");
         assert.match(fixture, /vars\.VarPlayer\.FromID\(VARP\)\.value/, "vars shim used");
+        assert.match(fixture, /local SPRITE = id\.Sprite\.RS3_CONTEXTUAL_INPUT_ERROR/, "a gameval name is a plain field read");
+        assert.match(fixture, /local AREA = id\.Component\.TOPLEVEL_V2__GAME_AREA/, "interface components keep their iface__component name");
         assert.match(fixture, /type\(value\) == "number"/, "typeof compiles to type()");
         assert.match(fixture, /& BITS/, "native bitwise operators");
         assert.match(fixture, /for _, skill in ipairs\(TRACKED\) do/, "for-of becomes ipairs with _ index");

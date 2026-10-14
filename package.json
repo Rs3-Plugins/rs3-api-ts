@@ -26,9 +26,13 @@
     "release": "node ./scripts/release.js",
     "release:dry": "node ./scripts/release.js --dry-run",
     "publish:local": "npm run build && npm test && node ./scripts/publish-local.js link",
-    "unpublish:local": "node ./scripts/publish-local.js unlink"
+    "unpublish:local": "node ./scripts/publish-local.js unlink",
+    "ids:dump": "node ./scripts/dump-gamevals.js"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "seek-bzip": "^2.0.0"
   }
 }

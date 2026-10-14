@@ -2,7 +2,7 @@
 
 /** @customConstructor HTTPRequest.new */
 declare class HTTPRequest {
-    constructor(url: string);
+    constructor(url: PluginURL, path?: string);
     AddHeader(name: string, value: string): void;
     Post(body: string, onSuccess: (this: void) => void, onFailure: (this: void) => void): void;
     Get(onSuccess: (this: void) => void, onFailure: (this: void) => void): void;

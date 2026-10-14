@@ -42,12 +42,12 @@ let nextID = 0;
 /** @noSelf */
 export function on<T>(source: Subscribable<T>, handler: Handler<T>, id?: string): Unsubscribe {
     nextID = nextID + 1;
-    const key = id !== undefined ? id : `${Plugin.Name}:${nextID}`;
+    const key = id !== undefined ? id : `rs3api_${nextID}`;
     source.Subscribe(key, handler);
 
     const entry: Tracked = {
         detach: () => {
-            pcall(source.Unsubscribe, key);
+            pcall(() => source.Unsubscribe(key));
         },
     };
     tracked[tracked.length] = entry;
@@ -125,12 +125,12 @@ export function definePlugin(options: PluginOptions): void {
     }
 
     PluginShutdown = () => {
+        if (autoUnsubscribe) {
+            guard(unsubscribeAll);
+        }
         guard(options.shutdown);
         for (const m of modules) {
             guard(m.shutdown);
-        }
-        if (autoUnsubscribe) {
-            guard(unsubscribeAll);
         }
     };
 

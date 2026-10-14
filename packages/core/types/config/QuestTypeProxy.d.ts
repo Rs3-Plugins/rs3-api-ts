@@ -1,5 +1,9 @@
 /** @noSelfInFile */
 
+interface QuestProgressVar {
+    readonly varPlayer: VarProxy;
+}
+
 interface QuestTypeProxy extends ConfigTypeProxy, ParamHolder {
     readonly name: string;
     readonly sortName: string;
@@ -18,7 +22,7 @@ interface QuestTypeProxy extends ConfigTypeProxy, ParamHolder {
     readonly completedPreReqQuests: unknown;
     readonly completedPreReqSkills: unknown;
     readonly completedPreReqQuestPoints: number;
-    readonly masterQuestVars: unknown;
+    readonly masterQuestVars: QuestProgressVar[];
     readonly startCoordGrids: CoordGrid[];
     readonly viaCoordGrid: CoordGrid | undefined;
 }
