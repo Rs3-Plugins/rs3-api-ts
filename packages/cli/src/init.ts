@@ -77,7 +77,7 @@ export async function init(options: InitOptions): Promise<void> {
     console.log(`  cd ${answers.name}`);
     console.log("  npm install");
     console.log("  npm run build          # readable Lua in dist/");
-    console.log("  npm run dev -- --out <your client's plugins folder>");
+    console.log("  npm run dev            # rebuild on save, installed into every client's dev_plugins folder");
 }
 
 async function collectAnswers(given: Partial<InitAnswers>, interactive: boolean): Promise<InitAnswers> {

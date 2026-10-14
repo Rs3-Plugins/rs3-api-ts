@@ -9,8 +9,8 @@ const example = path.join(root, "examples", "hello");
 const cliRoot = path.join(root, "packages", "cli");
 const cli = path.join(cliRoot, "dist", "index.js");
 
-function run(args, cwd) {
-    return execSync(`node "${cli}" ${args}`, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+function run(args, cwd, env) {
+    return execSync(`node "${cli}" ${args}`, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, ...env } });
 }
 
 function read(relative) {
@@ -519,13 +519,82 @@ async function main() {
         }, 300);
     });
 
-    // dev build
+    // dev build (a fake, empty %ProgramData% keeps it out of any real client on this machine)
     console.log("dev build");
-    run("build --dev", example);
+    const noClients = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "rs3-api-ts-noclients-"));
+    try {
+        const devOut = run("build --dev", example, { ProgramData: noClients });
+        assert.doesNotMatch(devOut, /copied to /, "with no client installed, a dev build copies nowhere and does not complain");
+    } finally {
+        fs.rmSync(noClients, { recursive: true, force: true });
+    }
     const devFiles = luaFiles(dist);
     const devMain = read("main.lua");
     assert.match(devMain, /__TS__SourceMapTraceBack|sourcemap/i, "dev bundle carries source map traceback");
     assert.ok(devFiles.length <= 2, `dev build should be a bundle, got ${devFiles.length} files`);
+
+    // copying the build into a plugins folder: --out for any folder, --client for the installed clients
+    console.log("deploy");
+    const deployRoot = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "rs3-api-ts-deploy-"));
+    try {
+        const outDir = path.join(deployRoot, "plugins");
+        const outResult = run(`build --out "${outDir}"`, example);
+        assert.match(outResult, /copied to /, "--out reports where it copied");
+        assert.ok(fs.existsSync(path.join(outDir, "hello-ts", "main.lua")), "--out copies dist/ to <dir>/<plugin name>/");
+        assert.ok(fs.existsSync(path.join(outDir, "hello-ts", "plugin.json")), "plugin.json travels with it");
+
+        // a fake %ProgramData% with only the beta client installed
+        const programData = path.join(deployRoot, "ProgramData");
+        const betaRoot = path.join(programData, "Jagex", "RuneScape-BETA");
+        fs.mkdirSync(betaRoot, { recursive: true });
+        const env = { ProgramData: programData };
+
+        // dev builds install into every installed client without being asked
+        const devDefault = run("build --dev", example, env);
+        const installed = path.join(betaRoot, "dev_plugins", "hello-ts");
+        assert.match(devDefault, /copied to .*RuneScape-BETA[\\/]dev_plugins[\\/]hello-ts/, "a dev build installs into the beta client by default");
+        assert.equal((devDefault.match(/copied to /g) ?? []).length, 1, "and skips the client that is not installed");
+        assert.ok(fs.existsSync(path.join(installed, "main.lua")), "dev build lands in RuneScape-BETA/dev_plugins/<plugin name>/");
+        assert.ok(fs.existsSync(path.join(installed, "plugin.json")), "with its plugin.json");
+        assert.doesNotMatch(run("build", example, env), /copied to /, "a release build without flags copies nowhere");
+
+        const betaResult = run("build --client beta", example, env);
+        assert.match(betaResult, /copied to .*RuneScape-BETA[\\/]dev_plugins[\\/]hello-ts/, "--client beta installs a release build too");
+
+        let liveMissing = false;
+        try {
+            run("build --quiet --client all", example, env);
+        } catch (error) {
+            liveMissing = true;
+            const stderr = String(error.stderr);
+            assert.match(stderr, /the RuneScape client is not installed at /, "--client all fails when one client is missing");
+            assert.match(stderr, /--client beta or --client live targets just the one you have/, "and says how to target the other");
+        }
+        assert.ok(liveMissing, "a missing client is an error, not a silent skip");
+
+        const liveRoot = path.join(programData, "Jagex", "RuneScape");
+        fs.mkdirSync(liveRoot, { recursive: true });
+        const both = run(`build --client --out "${outDir}"`, example, env);
+        assert.equal((both.match(/copied to /g) ?? []).length, 3, "bare --client means both clients, and --out still applies");
+        assert.ok(fs.existsSync(path.join(liveRoot, "dev_plugins", "hello-ts", "main.lua")), "the RuneScape client got a copy too");
+        fs.rmSync(path.join(liveRoot, "dev_plugins"), { recursive: true, force: true });
+        const devBoth = run("build --dev", example, env);
+        assert.equal((devBoth.match(/copied to /g) ?? []).length, 2, "with both clients installed a dev build goes to both");
+        assert.ok(fs.existsSync(path.join(liveRoot, "dev_plugins", "hello-ts", "main.lua")), "creating dev_plugins when the client has none yet");
+        const devExplicit = run("build --dev --client beta", example, env);
+        assert.equal((devExplicit.match(/copied to /g) ?? []).length, 1, "an explicit --client replaces the dev default");
+
+        let badClient = false;
+        try {
+            run("build --quiet --client staging", example, env);
+        } catch (error) {
+            badClient = true;
+            assert.match(String(error.stderr), /--client: "staging" is not a client/);
+        }
+        assert.ok(badClient, "unknown client names are rejected");
+    } finally {
+        fs.rmSync(deployRoot, { recursive: true, force: true });
+    }
 
     // leave dist/ in release shape for anyone browsing it
     run("build --quiet", example);

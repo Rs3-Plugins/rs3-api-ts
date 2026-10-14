@@ -5,7 +5,7 @@ import { printError, printProblems, printSummary } from "./report";
 
 export interface DevOptions {
     cwd: string;
-    deployTo?: string;
+    deployTo?: string[];
 }
 
 /** Rebuilds the dev bundle whenever a source file or plugin.json changes. Runs until interrupted. */

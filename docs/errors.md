@@ -78,6 +78,9 @@ While `init` is asking questions rather than reading flags, a bad answer is repo
 | --- | --- | --- |
 | `no tsconfig.json here, so there is no plugin to build` | error | `build` and `dev` run inside a plugin folder. The hint says where it looked. |
 | `unknown command "<name>"` | error | Followed by the usage summary. |
+| `--client: "<value>" is not a client` | error | `beta` (RuneScape-BETA), `live` (RuneScape) or `all`. A bare `--client` means `all`. |
+| `the <client> client is not installed at <path>` | error | An explicit `--client` looks under `%ProgramData%\Jagex`. Install that client, pick the other one, or use `--out <dir>`. Dev builds without `--client` skip missing clients instead. |
+| `--client only knows where the client keeps plugins on Windows` | error | On other systems, give the folder with `--out <dir>`. |
 
 ## Permissions
 

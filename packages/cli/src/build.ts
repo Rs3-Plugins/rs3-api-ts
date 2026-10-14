@@ -10,7 +10,8 @@ export interface BuildOptions {
     cwd: string;
     /** Single bundle with source maps, instead of one readable file per source file. */
     dev?: boolean;
-    deployTo?: string;
+    /** Folders to copy the finished plugin into, each under its own `<dir>/<plugin name>/`. */
+    deployTo?: string[];
 }
 
 export interface BuildResult {
@@ -20,7 +21,7 @@ export interface BuildResult {
     notes: string[];
     files: string[];
     outDir: string;
-    deployedTo?: string;
+    deployedTo: string[];
     project: Project;
 }
 
@@ -66,11 +67,14 @@ export function build(options: BuildOptions): BuildResult {
     }
 
     const ok = !problems.some((p) => p.level === "error");
-    let deployedTo: string | undefined;
-    if (ok && options.deployTo !== undefined && project.manifest !== undefined) {
-        deployedTo = path.resolve(options.cwd, options.deployTo, project.manifest.name);
-        fs.rmSync(deployedTo, { recursive: true, force: true });
-        fs.cpSync(project.outDir, deployedTo, { recursive: true });
+    const deployedTo: string[] = [];
+    if (ok && project.manifest !== undefined) {
+        for (const dir of options.deployTo ?? []) {
+            const target = path.resolve(options.cwd, dir, project.manifest.name);
+            fs.rmSync(target, { recursive: true, force: true });
+            fs.cpSync(project.outDir, target, { recursive: true });
+            deployedTo.push(target);
+        }
     }
 
     return {

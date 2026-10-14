@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as path from "node:path";
 import { build } from "./build";
+import { clientDevPluginsDirs, installedClientDevPluginsDirs, parseClientFlag } from "./clients";
 import { dev } from "./dev";
 import { dependenciesFromFlag, init } from "./init";
 import { printError, printProblems, printSummary } from "./report";
@@ -45,11 +46,19 @@ function usage(): string {
         "Usage:",
         "  rs3-plugin init [name]            scaffold a new plugin in ./<name> (asks what it does not know)",
         "  rs3-plugin build [--out <dir>]    compile src/ to readable Lua in dist/ and run checks",
-        "  rs3-plugin build --dev            single-file bundle with source-mapped tracebacks",
-        "  rs3-plugin dev [--out <dir>]      rebuild on change (dev mode)",
+        "  rs3-plugin build --dev            single-file bundle with source-mapped tracebacks, installed into the clients",
+        "  rs3-plugin build --client beta    release build installed into the RuneScape-BETA client",
+        "  rs3-plugin dev [--out <dir>]      rebuild on change (dev mode), installed into the clients",
+        "",
+        "Dev builds (dev, build --dev) are always copied into every installed client's dev_plugins folder:",
+        "  %ProgramData%\\Jagex\\RuneScape-BETA\\dev_plugins and %ProgramData%\\Jagex\\RuneScape\\dev_plugins",
         "",
         "Options:",
         "  --out <dir>    copy the built plugin into <dir>/<plugin name>/ (your client's plugin folder)",
+        "  --client [beta|live|all]",
+        "                 copy the built plugin into that client's dev_plugins folder (beta = RuneScape-BETA,",
+        "                 live = RuneScape, bare --client = all); errors if the client is not installed.",
+        "                 Can be combined with --out",
         "  --cwd <dir>    run as if started from <dir>",
         "  --quiet        only print problems",
         "",
@@ -106,6 +115,25 @@ function listFlag(flags: Args["flags"], name: string): string[] | undefined {
         .filter((s: string) => s !== "");
 }
 
+/**
+ * Every folder the build should be copied into: `--out <dir>`, `--client <which>`, and for dev
+ * builds every installed client's dev_plugins folder unless --client picked explicitly.
+ */
+function deployTargets(flags: Args["flags"], dev: boolean): string[] | undefined {
+    const targets: string[] = [];
+    const out = stringFlag(flags, "out");
+    if (out !== undefined) {
+        targets.push(out);
+    }
+    const client = parseClientFlag(flags.client);
+    if (client !== undefined) {
+        targets.push(...clientDevPluginsDirs(client));
+    } else if (dev) {
+        targets.push(...installedClientDevPluginsDirs());
+    }
+    return targets.length > 0 ? targets : undefined;
+}
+
 async function main(): Promise<void> {
     const { flags, positional } = parseArgs(process.argv.slice(2));
     const command = positional[0];
@@ -123,10 +151,11 @@ async function main(): Promise<void> {
 
     switch (command) {
         case "build": {
+            const isDev = flags.dev === true;
             const result = build({
                 cwd,
-                dev: flags.dev === true,
-                deployTo: stringFlag(flags, "out"),
+                dev: isDev,
+                deployTo: deployTargets(flags, isDev),
             });
             printProblems(result.problems);
             if (flags.quiet !== true) {
@@ -136,7 +165,7 @@ async function main(): Promise<void> {
             return;
         }
         case "dev": {
-            dev({ cwd, deployTo: stringFlag(flags, "out") });
+            dev({ cwd, deployTo: deployTargets(flags, true) });
             return;
         }
         case "init": {

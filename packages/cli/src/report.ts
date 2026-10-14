@@ -47,8 +47,8 @@ export function printSummary(result: BuildResult): void {
     }
     if (result.ok) {
         console.log(green(`built ${name} (${mode}) -> ${path.relative(process.cwd(), result.outDir) || "."} (${result.files.length} lua file${result.files.length === 1 ? "" : "s"}${warnings > 0 ? `, ${warnings} warning${warnings === 1 ? "" : "s"}` : ""})`));
-        if (result.deployedTo !== undefined) {
-            console.log(green(`copied to ${result.deployedTo}`));
+        for (const target of result.deployedTo) {
+            console.log(green(`copied to ${target}`));
         }
     } else {
         console.error(bold(red(`build failed: ${errors} error${errors === 1 ? "" : "s"}${warnings > 0 ? `, ${warnings} warning${warnings === 1 ? "" : "s"}` : ""}`)));
