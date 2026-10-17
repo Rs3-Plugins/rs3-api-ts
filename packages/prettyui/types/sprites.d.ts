@@ -101,6 +101,7 @@ declare namespace prettyui {
         readonly CHECKBOX_BUTTON: { readonly empty: number; readonly emptyHovered: number; readonly selected: number; readonly selectedHovered: number };
         readonly SPRITE_BUTTONS: { readonly [name: string]: SpriteButtonSet | undefined };
         readonly SPRITE_BUTTON_NAMES: string[];
+        readonly MINIMENU: { readonly title: number; readonly titleCorner: number; readonly side: number; readonly bottom: number; readonly bottomCorner: number };
     }
 
     const Sprites: SpriteTable;
