@@ -14,6 +14,8 @@ const packages = [
     ["rs3-api-ts", path.join(root, "packages", "cli")],
 ];
 
+const OWN_VERSION = new Set(["rs3-api-prettyui"]);
+
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const allowDirty = args.includes("--allow-dirty");
@@ -46,7 +48,7 @@ function version(dir) {
 
 const target = version(root);
 for (const [name, dir] of packages) {
-    if (version(dir) !== target) {
+    if (!OWN_VERSION.has(name) && version(dir) !== target) {
         fail(`${name} is ${version(dir)} but the workspace is ${target}`, `set every version at once: node scripts/version.js ${target}`);
     }
 }
@@ -64,17 +66,18 @@ if (!dryRun) {
         fail("not logged in to the npm registry", "run `npm login` first", "in CI, set NODE_AUTH_TOKEN instead");
     }
 
-    for (const [name] of packages) {
+    for (const [name, dir] of packages) {
         // A brand new package 404s; a known package with an unknown version exits
         // 0 and prints nothing, so only real output means the version is taken.
+        const want = version(dir);
         let published = "";
         try {
-            published = capture(`npm view ${name}@${target} version`);
+            published = capture(`npm view ${name}@${want} version`);
         } catch {
             published = "";
         }
         if (published !== "") {
-            fail(`${name}@${target} is already on the registry`, "published versions cannot be replaced, so pick a new one", "node scripts/version.js <next version>");
+            fail(`${name}@${want} is already on the registry`, "published versions cannot be replaced, so pick a new one", OWN_VERSION.has(name) ? `bump the patch in ${path.relative(root, path.join(dir, "package.json"))}` : "node scripts/version.js <next version>");
         }
     }
 }
@@ -85,8 +88,8 @@ if (build) {
 }
 
 for (const [name, dir] of packages) {
-    console.log(`\n--- ${name}@${target}${dryRun ? " (dry run)" : ""}`);
-    run(`npm publish --access public --tag ${tag}${dryRun ? " --dry-run" : ""}`, dir);
+    console.log(`\n--- ${name}@${version(dir)}${dryRun ? " (dry run)" : ""}`);
+    run(dryRun ? "npm pack --dry-run" : `npm publish --access public --tag ${tag}`, dir);
 }
 
 console.log(`

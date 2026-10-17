@@ -10,6 +10,7 @@ import { sdkVersion } from "./project";
 
 const BOOLEAN_FLAGS = new Set([
     "dev", "help", "version", "quiet", "yes", "sync-version", "no-sync-version", "local", "registry",
+    "keep-logs",
     "settings-icon", "no-settings-icon", "ribbon-icon", "no-ribbon-icon",
 ]);
 
@@ -53,7 +54,11 @@ function usage(): string {
         "Dev builds (dev, build --dev) are always copied into every installed client's dev_plugins folder:",
         "  %ProgramData%\\Jagex\\RuneScape-BETA\\dev_plugins and %ProgramData%\\Jagex\\RuneScape\\dev_plugins",
         "",
+        "A release build (plain `build`) strips console output, so what you ship to mod.io is silent.",
+        "Dev builds keep it.",
+        "",
         "Options:",
+        "  --keep-logs    keep print/warn in a release build",
         "  --out <dir>    copy the built plugin into <dir>/<plugin name>/ (your client's plugin folder)",
         "  --client [beta|live|all]",
         "                 copy the built plugin into that client's dev_plugins folder (beta = RuneScape-BETA,",
@@ -156,6 +161,7 @@ async function main(): Promise<void> {
             const result = build({
                 cwd,
                 dev: isDev,
+                keepLogs: flags["keep-logs"] === true,
                 deployTo: deployTargets(flags, isDev),
             });
             printProblems(result.problems);

@@ -5,11 +5,13 @@ import * as tstl from "typescript-to-lua";
 import { checkManifest, checkOutput, type OutputFile, type Problem } from "./checks";
 import { makeReadable } from "./postprocess";
 import { loadProject, type Project } from "./project";
+import { stripLogs, stripLuaLogs } from "./strip-logs";
 
 export interface BuildOptions {
     cwd: string;
     /** Install into every client's dev_plugins folder as well as dist. */
     dev?: boolean;
+    keepLogs?: boolean;
     /** Folders to copy the finished plugin into, each under its own `<dir>/<plugin name>/`. */
     deployTo?: string[];
 }
@@ -36,10 +38,19 @@ export function build(options: BuildOptions): BuildResult {
 
     fs.rmSync(project.outDir, { recursive: true, force: true });
 
+    const silence = !dev && options.keepLogs !== true;
+    if (silence) {
+        notes.push("console output stripped (print, warn) - use --keep-logs to keep it");
+    }
+
     const emitted: Array<{ file: string; text: string }> = [];
-    const emit = tstl.transpileProject(project.tsconfigPath, {}, (fileName, text) => {
-        emitted.push({ file: fileName, text });
-    });
+    const emit = tstl.transpileProject(
+        project.tsconfigPath,
+        silence ? { luaPlugins: [{ plugin: stripLogs }] } : {},
+        (fileName, text) => {
+            emitted.push({ file: fileName, text });
+        },
+    );
 
     const renames = flatNames(emitted, project.outDir);
     const written: OutputFile[] = [];
@@ -53,6 +64,9 @@ export function build(options: BuildOptions): BuildResult {
                 code = code.split(`"${from}"`).join(`"${to}"`);
             }
             code = makeReadable(code);
+            if (silence) {
+                code = stripLuaLogs(code);
+            }
             const renamed = renames.get(id);
             if (renamed !== undefined) {
                 target = path.join(project.outDir, `${renamed}.lua`);
@@ -80,7 +94,7 @@ export function build(options: BuildOptions): BuildResult {
     const deployedTo: string[] = [];
     if (ok && project.manifest !== undefined) {
         for (const dir of options.deployTo ?? []) {
-            const target = path.resolve(options.cwd, dir, project.manifest.name);
+            const target = path.resolve(options.cwd, dir, folderName(project.manifest.name));
             fs.rmSync(target, { recursive: true, force: true });
             fs.cpSync(project.outDir, target, { recursive: true });
             deployedTo.push(target);
@@ -97,6 +111,14 @@ export function build(options: BuildOptions): BuildResult {
         deployedTo,
         project,
     };
+}
+
+function folderName(name: string): string {
+    const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    return slug === "" ? "plugin" : slug;
 }
 
 /** Rewrites the source plugin.json too, so `npm version patch` is the only bump needed. */
