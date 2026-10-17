@@ -1,6 +1,6 @@
 {
   "name": "rs3-api-prettyui",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "TypeScript declarations for PrettyUI, the RuneScape 3 UI library plugin: the prettyui global, its components, options and callbacks. Types only.",
   "license": "MIT",
   "author": "Mark7625",

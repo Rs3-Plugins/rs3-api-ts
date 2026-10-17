@@ -17,3 +17,4 @@
 /// <reference path="./types/bars.d.ts" />
 /// <reference path="./types/sprites.d.ts" />
 /// <reference path="./types/prettyui.d.ts" />
+/// <reference path="./types/mini_menu.d.ts" />

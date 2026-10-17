@@ -8,12 +8,12 @@
     "id": 6398181,
     "profile_url": "https://mod.io/g/runescape/m/prettyui"
   },
-  "pluginVersion": "1.1.0",
-  "commit": "b16c33b7861bb317bd32f626b34eca87ad507668",
-  "commitDate": "2026-10-12T13:48:25+02:00",
+  "pluginVersion": "1.2.1",
+  "commit": "fff902ec1f8cb02220b2b570e012c269ebad4f65",
+  "commitDate": "2026-10-17T14:14:18+02:00",
   "modfile": {
-    "id": 8321207,
-    "version": "1.1.0",
-    "dateAdded": "2026-10-13T10:12:37.000Z"
+    "id": 8338275,
+    "version": "1.2.1",
+    "dateAdded": "2026-10-17T12:05:35.000Z"
   }
 }
